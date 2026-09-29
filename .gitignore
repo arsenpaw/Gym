@@ -1,0 +1,20 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+.idea/
+TestResults/
+
+# Node / UI
+node_modules/
+dist/
+
+# Secrets
+deploy/.env
+
+# Obsidian per-device state
+docs/.obsidian/workspace*.json
+
+# OS
+.DS_Store
