@@ -1,5 +1,6 @@
 using FitnessClub.Application.Abstractions;
 using FitnessClub.Infrastructure.Persistence;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +22,21 @@ public static class DependencyInjection
                 options.UseSqlServer(connectionString);
         });
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<FitnessClubDbContext>());
+
+        services.AddHangfire(hangfire =>
+        {
+            hangfire
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings();
+
+            var connectionString = configuration.GetConnectionString(ConnectionStringName);
+            if (string.IsNullOrWhiteSpace(connectionString))
+                hangfire.UseInMemoryStorage();
+            else
+                hangfire.UseSqlServerStorage(connectionString);
+        });
+        services.AddHangfireServer();
 
         return services;
     }
