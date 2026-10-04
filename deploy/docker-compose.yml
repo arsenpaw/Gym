@@ -1,0 +1,15 @@
+services:
+  api:
+    build:
+      context: ../api
+    ports:
+      - "8080:8080"
+    environment:
+      Auth0__Domain: ${AUTH0_DOMAIN:?Set AUTH0_DOMAIN in deploy/.env}
+      Auth0__Audience: ${AUTH0_AUDIENCE:?Set AUTH0_AUDIENCE in deploy/.env}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
