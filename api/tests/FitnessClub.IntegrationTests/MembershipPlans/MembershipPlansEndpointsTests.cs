@@ -13,7 +13,6 @@ public class MembershipPlansEndpointsTests(FitnessClubApiFactory factory) : ICla
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    // Tests in this class share one in-memory database, so every plan gets a unique name.
     private static object NewPlan(decimal price = 800m, int validityDays = 30, int? visitLimit = null) =>
         new { name = $"Plan {Guid.NewGuid():N}", price, validityDays, visitLimit };
 

@@ -25,7 +25,6 @@ public static class AuthenticationSetup
                 jwt.TokenValidationParameters.RoleClaimType = auth0.RolesClaim;
             });
 
-        // Every endpoint requires a signed-in user unless it opts out with AllowAnonymous.
         services.AddAuthorizationBuilder()
             .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 

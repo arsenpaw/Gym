@@ -41,7 +41,6 @@ public static class DependencyInjection
         return services;
     }
 
-    // Applies pending EF migrations when a relational database is configured; the InMemory provider has no migrations.
     public static async Task InitializeDatabaseAsync(this IServiceProvider services)
     {
         await using var scope = services.CreateAsyncScope();
