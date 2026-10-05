@@ -1,5 +1,6 @@
 using FitnessClub.Domain.Common;
 using FitnessClub.Domain.MembershipPlans;
+using FitnessClub.Domain.Rooms;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
@@ -10,6 +11,7 @@ internal sealed class FitnessClubDbContext(DbContextOptions<FitnessClubDbContext
     public const string VersionProperty = "Version";
 
     public DbSet<MembershipPlan> MembershipPlans => Set<MembershipPlan>();
+    public DbSet<Room> Rooms => Set<Room>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
