@@ -1,6 +1,6 @@
 ---
 tags: [spec, api]
-status: draft
+status: implemented
 date: 2026-10-05
 ---
 
@@ -10,7 +10,7 @@ Sub-project 1 of 5 for the backend. Requirements source: [[Fitness Club System]]
 
 | # | Sub-project | Status |
 |---|---|---|
-| 1 | **Foundation** (this spec) | draft |
+| 1 | **Foundation** (this spec) | implemented |
 | 2 | Clients, memberships, visits | not started |
 | 3 | Trainers, schedules, rooms, bookings | not started |
 | 4 | Membership expiry notifications (Hangfire job) | not started |
