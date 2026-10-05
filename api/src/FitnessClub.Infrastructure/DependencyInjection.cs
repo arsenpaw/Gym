@@ -1,5 +1,6 @@
 using FitnessClub.Application.Abstractions;
 using FitnessClub.Domain.MembershipPlans;
+using FitnessClub.Domain.Rooms;
 using FitnessClub.Infrastructure.BackgroundJobs;
 using FitnessClub.Infrastructure.Persistence;
 using FitnessClub.Infrastructure.Persistence.Repositories;
@@ -29,6 +30,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IMembershipPlanRepository, MembershipPlanRepository>();
+        services.AddScoped<IRoomRepository, RoomRepository>();
 
         services.AddHangfire(hangfire =>
         {
