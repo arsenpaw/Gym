@@ -58,7 +58,6 @@ public sealed class MembershipPlanService(IApplicationDbContext db)
         await db.MembershipPlans.FirstOrDefaultAsync(p => p.Id == id, cancellationToken)
         ?? throw new NotFoundException($"Membership plan '{id}' was not found.");
 
-    // InMemory does not enforce unique indexes, so uniqueness is checked here.
     private async Task EnsureNameIsUniqueAsync(string name, Guid? excludeId, CancellationToken cancellationToken)
     {
         var normalizedName = name.ToLower();

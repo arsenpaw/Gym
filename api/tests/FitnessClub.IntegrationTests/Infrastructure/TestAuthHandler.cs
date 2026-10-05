@@ -6,7 +6,6 @@ using Microsoft.Extensions.Options;
 
 namespace FitnessClub.IntegrationTests.Infrastructure;
 
-// Signs the request in when the X-Test-Roles header is present; its comma-separated value becomes the user's roles.
 public sealed class TestAuthHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
     ILoggerFactory logger,

@@ -4,7 +4,6 @@ using FitnessClub.Application.Common;
 
 namespace FitnessClub.IntegrationTests.Auth;
 
-// Exercises the real JWT bearer pipeline: roles must come from the Auth0 custom claim.
 public class Auth0JwtRoleMappingTests(RealJwtApiFactory factory) : IClassFixture<RealJwtApiFactory>
 {
     private const string BaseUrl = "/api/membership-plans";

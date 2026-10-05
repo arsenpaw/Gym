@@ -10,8 +10,6 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace FitnessClub.IntegrationTests.Auth;
 
-// Keeps the real JWT bearer setup from AuthenticationSetup; only the Auth0 metadata download
-// is replaced by a local issuer and signing key, so tokens can be minted in-process.
 public sealed class RealJwtApiFactory : WebApplicationFactory<Program>
 {
     public const string Domain = "test.invalid";

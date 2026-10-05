@@ -29,7 +29,6 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi().AllowAnonymous();
     app.MapScalarApiReference().AllowAnonymous();
-    // Hangfire's default dashboard filter only allows requests from the local machine.
     app.MapHangfireDashboard("/hangfire").AllowAnonymous();
 }
 
