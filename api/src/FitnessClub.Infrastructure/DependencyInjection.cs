@@ -1,6 +1,7 @@
 using FitnessClub.Application.Abstractions;
 using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.MembershipPlans;
+using FitnessClub.Domain.Notifications;
 using FitnessClub.Domain.Payments;
 using FitnessClub.Domain.Rooms;
 using FitnessClub.Domain.Trainers;
@@ -41,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<ITrainerRepository, TrainerRepository>();
         services.AddScoped<IRoomRepository, RoomRepository>();
         services.AddScoped<ITrainingSessionRepository, TrainingSessionRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
 
         services.AddHangfire(hangfire =>
         {
