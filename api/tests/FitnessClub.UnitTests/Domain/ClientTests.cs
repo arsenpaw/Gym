@@ -109,6 +109,20 @@ public class ClientTests
     }
 
     [Fact]
+    public void CheckIn_again_the_same_day_on_a_newly_bought_membership_is_allowed()
+    {
+        var client = TestData.ClientWithMembership(validityDays: 1, visitLimit: 1);
+        var first = client.CheckIn(TestData.Now);
+        var second = TestData.Buy(client, TestData.Plan(validityDays: 1, visitLimit: 1));
+
+        var visit = client.CheckIn(TestData.Now.AddHours(2));
+
+        Assert.Equal(second.Id, visit.MembershipId);
+        Assert.NotEqual(first.MembershipId, visit.MembershipId);
+        Assert.Equal(0, second.RemainingVisits);
+    }
+
+    [Fact]
     public void PurchaseMembership_returns_payment_for_the_new_membership()
     {
         var client = TestData.Client();
