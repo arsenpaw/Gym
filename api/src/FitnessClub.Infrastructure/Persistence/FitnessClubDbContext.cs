@@ -1,6 +1,7 @@
 using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.Common;
 using FitnessClub.Domain.MembershipPlans;
+using FitnessClub.Domain.Notifications;
 using FitnessClub.Domain.Payments;
 using FitnessClub.Domain.Rooms;
 using FitnessClub.Domain.Trainers;
@@ -22,6 +23,7 @@ internal sealed class FitnessClubDbContext(DbContextOptions<FitnessClubDbContext
     public DbSet<Trainer> Trainers => Set<Trainer>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<TrainingSession> TrainingSessions => Set<TrainingSession>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
