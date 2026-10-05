@@ -1,6 +1,7 @@
 using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.MembershipPlans;
 using FitnessClub.Domain.Payments;
+using FitnessClub.Domain.Rooms;
 using FitnessClub.Domain.SharedKernel;
 using FitnessClub.Domain.Trainers;
 
@@ -34,6 +35,8 @@ internal static class TestData
         var payment = client.PurchaseMembership(plan, startsOn ?? Today, PaymentMethod.Cash, Now);
         return client.Memberships.Single(m => m.Id == payment.MembershipId);
     }
+
+    public static Room Room(int capacity = 20) => FitnessClub.Domain.Rooms.Room.Create($"Room {Guid.NewGuid():N}", capacity);
 
     public static Trainer Trainer()
     {
