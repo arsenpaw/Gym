@@ -1,6 +1,7 @@
 using FitnessClub.Application.Abstractions;
 using FitnessClub.Application.Common;
 using FitnessClub.Domain.MembershipPlans;
+using FitnessClub.Domain.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessClub.Application.MembershipPlans;
@@ -22,7 +23,7 @@ public sealed class MembershipPlanService(IApplicationDbContext db)
 
     public async Task<MembershipPlanResponse> CreateAsync(MembershipPlanRequest request, CancellationToken cancellationToken)
     {
-        var plan = MembershipPlan.Create(request.Name, request.Price, request.ValidityDays, request.VisitLimit);
+        var plan = MembershipPlan.Create(request.Name, Money.Of(request.Price), request.ValidityDays, request.VisitLimit);
         await EnsureNameIsUniqueAsync(plan.Name, excludeId: null, cancellationToken);
 
         db.MembershipPlans.Add(plan);
@@ -33,7 +34,7 @@ public sealed class MembershipPlanService(IApplicationDbContext db)
     public async Task<MembershipPlanResponse> UpdateAsync(Guid id, MembershipPlanRequest request, CancellationToken cancellationToken)
     {
         var plan = await FindAsync(id, cancellationToken);
-        plan.Update(request.Name, request.Price, request.ValidityDays, request.VisitLimit);
+        plan.Update(request.Name, Money.Of(request.Price), request.ValidityDays, request.VisitLimit);
         await EnsureNameIsUniqueAsync(plan.Name, plan.Id, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);

@@ -103,7 +103,7 @@ public class MembershipPlansEndpointsTests(FitnessClubApiFactory factory) : ICla
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(Ct);
-        Assert.Equal("Price can have at most 2 decimal places.", problem?.Detail);
+        Assert.Equal("Amount can have at most 2 decimal places.", problem?.Detail);
     }
 
     [Fact]

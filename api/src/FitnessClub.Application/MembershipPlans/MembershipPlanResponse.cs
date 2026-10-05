@@ -11,5 +11,5 @@ public sealed record MembershipPlanResponse(
     bool IsActive)
 {
     public static MembershipPlanResponse FromEntity(MembershipPlan plan) =>
-        new(plan.Id, plan.Name, plan.Price, plan.ValidityDays, plan.VisitLimit, plan.IsActive);
+        new(plan.Id, plan.Name, plan.Price.Amount, plan.ValidityDays, plan.VisitLimit, plan.IsActive);
 }
