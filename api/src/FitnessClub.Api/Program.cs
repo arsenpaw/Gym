@@ -2,8 +2,6 @@ using FitnessClub.Api.Auth;
 using FitnessClub.Api.ErrorHandling;
 using FitnessClub.Application;
 using FitnessClub.Infrastructure;
-using FitnessClub.Infrastructure.BackgroundJobs;
-using Hangfire;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,14 +27,12 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi().AllowAnonymous();
     app.MapScalarApiReference().AllowAnonymous();
-    app.MapHangfireDashboard("/hangfire").AllowAnonymous();
 }
 
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapControllers();
 
-await app.Services.InitializeDatabaseAsync();
-RecurringJobs.Register(app.Services.GetRequiredService<IRecurringJobManager>());
+await app.UseInfrastructureAsync();
 
 await app.RunAsync();
 

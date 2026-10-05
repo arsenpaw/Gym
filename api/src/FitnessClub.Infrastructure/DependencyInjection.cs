@@ -1,15 +1,20 @@
 using FitnessClub.Application.Abstractions;
+using FitnessClub.Domain.MembershipPlans;
+using FitnessClub.Infrastructure.BackgroundJobs;
 using FitnessClub.Infrastructure.Persistence;
+using FitnessClub.Infrastructure.Persistence.Repositories;
 using Hangfire;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace FitnessClub.Infrastructure;
 
 public static class DependencyInjection
 {
-    public const string ConnectionStringName = "FitnessClub";
+    private const string ConnectionStringName = "FitnessClub";
 
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
@@ -19,9 +24,11 @@ public static class DependencyInjection
             if (string.IsNullOrWhiteSpace(connectionString))
                 options.UseInMemoryDatabase(configuration["Database:InMemoryName"] ?? "FitnessClub");
             else
-                options.UseSqlServer(connectionString);
+                options.UseSqlServer(connectionString, sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
         });
-        services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<FitnessClubDbContext>());
+
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IMembershipPlanRepository, MembershipPlanRepository>();
 
         services.AddHangfire(hangfire =>
         {
@@ -41,7 +48,16 @@ public static class DependencyInjection
         return services;
     }
 
-    public static async Task InitializeDatabaseAsync(this IServiceProvider services)
+    public static async Task UseInfrastructureAsync(this WebApplication app)
+    {
+        if (app.Environment.IsDevelopment())
+            app.MapHangfireDashboard("/hangfire").AllowAnonymous();
+
+        await InitializeDatabaseAsync(app.Services);
+        RecurringJobs.Register(app.Services.GetRequiredService<IRecurringJobManager>());
+    }
+
+    private static async Task InitializeDatabaseAsync(IServiceProvider services)
     {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<FitnessClubDbContext>();

@@ -12,4 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FitnessClub.Application\FitnessClub.Application.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="FitnessClub.ArchitectureTests" />
+  </ItemGroup>
 </Project>

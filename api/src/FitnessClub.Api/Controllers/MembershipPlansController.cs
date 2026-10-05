@@ -8,7 +8,7 @@ namespace FitnessClub.Api.Controllers;
 [ApiController]
 [Route("api/membership-plans")]
 [Authorize(Roles = $"{Roles.Admin},{Roles.Receptionist}")]
-public sealed class MembershipPlansController(MembershipPlanService service) : ControllerBase
+public sealed class MembershipPlansController(IMembershipPlanService service) : ControllerBase
 {
     [HttpGet]
     public Task<IReadOnlyList<MembershipPlanResponse>> List([FromQuery] bool includeInactive, CancellationToken cancellationToken) =>
