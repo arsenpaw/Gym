@@ -13,6 +13,6 @@ internal sealed class MembershipPlanConfiguration : IEntityTypeConfiguration<Mem
         builder.Property(p => p.Id).ValueGeneratedNever();
         builder.Property(p => p.Name).HasMaxLength(MembershipPlan.NameMaxLength).IsRequired();
         builder.HasIndex(p => p.Name).IsUnique();
-        builder.Property(p => p.Price).HasPrecision(18, 2);
+        builder.Property(p => p.Price).HasMoneyConversion();
     }
 }
