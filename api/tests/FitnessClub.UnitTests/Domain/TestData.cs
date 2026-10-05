@@ -2,6 +2,7 @@ using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.MembershipPlans;
 using FitnessClub.Domain.Payments;
 using FitnessClub.Domain.SharedKernel;
+using FitnessClub.Domain.Trainers;
 
 namespace FitnessClub.UnitTests.Domain;
 
@@ -32,5 +33,19 @@ internal static class TestData
     {
         var payment = client.PurchaseMembership(plan, startsOn ?? Today, PaymentMethod.Cash, Now);
         return client.Memberships.Single(m => m.Id == payment.MembershipId);
+    }
+
+    public static Trainer Trainer()
+    {
+        var trainer = FitnessClub.Domain.Trainers.Trainer.Hire(
+            PersonName.Create("Taras", "Bondar", null), PhoneNumber.Create("+380501112233"), null, "Yoga");
+        trainer.SetWorkingHours(Enum.GetValues<DayOfWeek>().Select(day => WorkingHours.Create(day, new TimeOnly(8, 0), new TimeOnly(20, 0))));
+        return trainer;
+    }
+
+    public static TimeSlot Slot(int startHour = 10, int durationMinutes = 60, int daysFromToday = 1)
+    {
+        var start = new DateTimeOffset(Today.AddDays(daysFromToday), new TimeOnly(startHour, 0), TimeSpan.Zero);
+        return TimeSlot.Create(start, start.AddMinutes(durationMinutes));
     }
 }

@@ -3,6 +3,7 @@ using FitnessClub.Domain.Common;
 using FitnessClub.Domain.MembershipPlans;
 using FitnessClub.Domain.Payments;
 using FitnessClub.Domain.Rooms;
+using FitnessClub.Domain.Trainers;
 using FitnessClub.Domain.Visits;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -17,6 +18,7 @@ internal sealed class FitnessClubDbContext(DbContextOptions<FitnessClubDbContext
     public DbSet<Client> Clients => Set<Client>();
     public DbSet<Visit> Visits => Set<Visit>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<Trainer> Trainers => Set<Trainer>();
     public DbSet<Room> Rooms => Set<Room>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
