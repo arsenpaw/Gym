@@ -151,7 +151,32 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
 
         await Assert.ThrowsAsync<ConflictException>(() => second.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync(Ct));
         var reloaded = await ReadAsync<IClientRepository, Client?>(clients => clients.GetByIdAsync(client.Id, Ct));
+        var history = await ReadAsync<IVisitRepository, IReadOnlyList<Visit>>(visits => visits.ListForClientAsync(client.Id, Ct));
         Assert.Equal(0, reloaded!.Memberships.Single().RemainingVisits);
+        Assert.Single(history);
+    }
+
+    [Fact]
+    public async Task Purchase_rejected_after_a_concurrent_check_in_stores_no_membership_or_payment()
+    {
+        var client = NewClient();
+        client.PurchaseMembership(Plan(), Today, PaymentMethod.Cash, Now);
+        await SaveAsync<IClientRepository>(clients => clients.Add(client));
+
+        await using var checkIn = Factory.Services.CreateAsyncScope();
+        await using var purchase = Factory.Services.CreateAsyncScope();
+        var checkInCopy = await checkIn.ServiceProvider.GetRequiredService<IClientRepository>().GetByIdAsync(client.Id, Ct);
+        var purchaseCopy = await purchase.ServiceProvider.GetRequiredService<IClientRepository>().GetByIdAsync(client.Id, Ct);
+        checkIn.ServiceProvider.GetRequiredService<IVisitRepository>().Add(checkInCopy!.CheckIn(Now));
+        var payment = purchaseCopy!.PurchaseMembership(Plan(), Today.AddDays(30), PaymentMethod.Card, Now);
+        purchase.ServiceProvider.GetRequiredService<IPaymentRepository>().Add(payment);
+
+        await checkIn.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync(Ct);
+
+        await Assert.ThrowsAsync<ConflictException>(() => purchase.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync(Ct));
+        var reloaded = await ReadAsync<IClientRepository, Client?>(clients => clients.GetByIdAsync(client.Id, Ct));
+        Assert.Single(reloaded!.Memberships);
+        Assert.Null(await ReadAsync<IPaymentRepository, Payment?>(payments => payments.GetByIdAsync(payment.Id, Ct)));
     }
 
     [Fact]

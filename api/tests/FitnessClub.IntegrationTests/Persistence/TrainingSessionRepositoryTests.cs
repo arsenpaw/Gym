@@ -1,3 +1,5 @@
+using FitnessClub.Application.Abstractions;
+using FitnessClub.Application.Common;
 using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.MembershipPlans;
 using FitnessClub.Domain.Payments;
@@ -6,6 +8,7 @@ using FitnessClub.Domain.SharedKernel;
 using FitnessClub.Domain.Trainers;
 using FitnessClub.Domain.Training;
 using FitnessClub.IntegrationTests.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessClub.IntegrationTests.Persistence;
 
@@ -50,6 +53,47 @@ public class TrainingSessionRepositoryTests(FitnessClubApiFactory factory) : Per
         Assert.Equal(client.Id, Assert.Single(loaded.Bookings).ClientId);
         Assert.True(await ReadAsync<ITrainingSessionRepository, bool>(s => s.ClientHasBookingDuringAsync(client.Id, Slot(30), Ct)));
         Assert.False(await ReadAsync<ITrainingSessionRepository, bool>(s => s.ClientHasBookingDuringAsync(client.Id, Slot(60), Ct)));
+    }
+
+    [Fact]
+    public async Task Booking_rejected_for_the_last_place_is_not_stored()
+    {
+        var (trainer, room) = await SeedTrainerAndRoomAsync();
+        var winner = await SeedClientWithMembershipAsync();
+        var loser = await SeedClientWithMembershipAsync();
+        TrainingSession session = null!;
+        await ChangeAsync<ITrainingSessionRepository>(async sessions =>
+        {
+            session = await new SessionScheduler(sessions).ScheduleAsync("Yoga", SessionType.Group, trainer, room, Slot(), 1, Now, Ct);
+            sessions.Add(session);
+        });
+
+        await using var first = Factory.Services.CreateAsyncScope();
+        await using var second = Factory.Services.CreateAsyncScope();
+        await BookInScopeAsync(first.ServiceProvider, session.Id, winner.Id);
+        await BookInScopeAsync(second.ServiceProvider, session.Id, loser.Id);
+
+        await first.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync(Ct);
+
+        await Assert.ThrowsAsync<ConflictException>(() => second.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync(Ct));
+        var reloaded = await ReadAsync<ITrainingSessionRepository, TrainingSession?>(sessions => sessions.GetByIdAsync(session.Id, Ct));
+        Assert.Equal(winner.Id, Assert.Single(reloaded!.Bookings).ClientId);
+    }
+
+    private async Task<Client> SeedClientWithMembershipAsync()
+    {
+        var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), null, Now);
+        client.PurchaseMembership(MembershipPlan.Create($"Plan {Guid.NewGuid():N}", Money.Of(800m), 30, null), Today, PaymentMethod.Cash, Now);
+        await SaveAsync<IClientRepository>(clients => clients.Add(client));
+        return client;
+    }
+
+    private static async Task BookInScopeAsync(IServiceProvider services, Guid sessionId, Guid clientId)
+    {
+        var sessions = services.GetRequiredService<ITrainingSessionRepository>();
+        var session = await sessions.GetByIdAsync(sessionId, Ct);
+        var client = await services.GetRequiredService<IClientRepository>().GetByIdAsync(clientId, Ct);
+        await new SessionScheduler(sessions).BookAsync(session!, client!, Now, Ct);
     }
 
     [Fact]
