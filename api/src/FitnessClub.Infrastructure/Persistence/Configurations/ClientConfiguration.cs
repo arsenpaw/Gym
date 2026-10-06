@@ -1,4 +1,5 @@
 using FitnessClub.Domain.Clients;
+using FitnessClub.Domain.MembershipPlans;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -23,7 +24,8 @@ internal sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
             membership.WithOwner().HasForeignKey("ClientId");
             membership.HasKey(m => m.Id);
             membership.Property(m => m.Id).ValueGeneratedNever();
-            membership.Property(m => m.PlanName).HasMaxLength(Domain.MembershipPlans.MembershipPlan.NameMaxLength).IsRequired();
+            membership.HasOne<MembershipPlan>().WithMany().HasForeignKey(m => m.PlanId).OnDelete(DeleteBehavior.Restrict);
+            membership.Property(m => m.PlanName).HasMaxLength(MembershipPlan.NameMaxLength).IsRequired();
             membership.Property(m => m.Price).HasMoneyConversion();
             membership.HasIndex(m => m.EndsOn);
         });
