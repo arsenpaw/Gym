@@ -41,7 +41,7 @@ Set up the skeleton of the `api/` backend that every later sub-project builds on
 | Tests | xUnit v3. Integration tests use `WebApplicationFactory` |
 | Packages | Central package management (`Directory.Packages.props`) |
 
-Not used, on purpose (YAGNI): MediatR/CQRS, AutoMapper, FluentValidation, the repository pattern.
+Not used, on purpose (YAGNI): MediatR/CQRS, AutoMapper, FluentValidation. The repository pattern, the unit of work and the full domain model came later in [[2026-10-05-domain-model-and-architecture-design]], which replaces this spec's `IApplicationDbContext` and layering rules.
 
 ## Solution layout
 

@@ -1,6 +1,6 @@
 ---
 tags: [spec, api, ddd]
-status: approved
+status: implemented
 date: 2026-10-05
 ---
 
@@ -11,7 +11,7 @@ Requirements source: [[Fitness Club System]]. This spec replaces the persistence
 | # | Sub-project | Status |
 |---|---|---|
 | 1 | Foundation | implemented |
-| 1b | **Domain model and architecture** (this spec) | approved |
+| 1b | **Domain model and architecture** (this spec) | implemented |
 | 2 | Clients, memberships, visits (use cases + endpoints) | not started |
 | 3 | Trainers, schedules, rooms, bookings (use cases + endpoints) | not started |
 | 4 | Membership expiry notifications (Hangfire job) | not started |
