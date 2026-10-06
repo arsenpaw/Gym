@@ -33,7 +33,7 @@ Each folder has its own CLAUDE.md with the details for that area. This file cove
 
 ## Status
 
-- **Backend (`api/`):** foundation built, with membership plans as the first feature. Stack and commands are in `api/CLAUDE.md`. Next backend parts: clients/memberships/visits, trainers/bookings, expiry notifications, reports. Each gets its own spec in `docs/Code/Specs/`.
+- **Backend (`api/`):** foundation built, and the whole domain model is in place: DDD aggregates, repositories and a unit of work behind enforced Clean Architecture boundaries. Membership plans are exposed end to end. Stack and commands are in `api/CLAUDE.md`. Next backend parts: use cases and endpoints for clients/memberships/visits, trainers/rooms/bookings, expiry notifications, reports. Each gets its own spec in `docs/Code/Specs/`.
 - **UI (`ui/`):** not started. Its libraries and tooling are TBD. Ask before choosing any.
 - **Specs and plans:** design specs go in `docs/Code/Specs/` and implementation plans in `docs/Code/Plans/`, not in Superpowers' default `docs/superpowers/`.
 
