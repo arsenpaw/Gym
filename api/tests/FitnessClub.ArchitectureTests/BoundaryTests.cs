@@ -40,25 +40,49 @@ public class BoundaryTests
 
         const BindingFlags declaredInstance = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
-        var injected = controllers
+        var constructorParameters = controllers
             .SelectMany(type => type.GetConstructors(declaredInstance).SelectMany(constructor => constructor.GetParameters()))
-            .Concat(controllers
-                .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-                .SelectMany(method => method.GetParameters()))
-            .Select(parameter => (Owner: parameter.Member.DeclaringType!, Type: parameter.ParameterType))
-            .Concat(controllers
-                .SelectMany(type => type.GetProperties(declaredInstance))
-                .Where(property => property.IsDefined(typeof(FromServicesAttribute), inherit: false))
-                .Select(property => (Owner: property.DeclaringType!, Type: property.PropertyType)));
+            .Select(parameter => (Owner: parameter.Member.DeclaringType!, Type: parameter.ParameterType));
 
-        var offenders = injected
-            .Where(item => item.Type.IsInterface
-                && (item.Type.Assembly != Layers.Application || !item.Type.Name.EndsWith("Service")))
+        var serviceProperties = controllers
+            .SelectMany(type => type.GetProperties(declaredInstance))
+            .Where(property => property.IsDefined(typeof(FromServicesAttribute), inherit: false))
+            .Select(property => (Owner: property.DeclaringType!, Type: property.PropertyType));
+
+        var actionParameters = controllers
+            .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            .SelectMany(method => method.GetParameters());
+
+        var strictOffenders = constructorParameters
+            .Concat(serviceProperties)
+            .Concat(actionParameters
+                .Where(parameter => parameter.IsDefined(typeof(FromServicesAttribute), inherit: false))
+                .Select(parameter => (Owner: parameter.Member.DeclaringType!, Type: parameter.ParameterType)))
+            .Where(item => item.Type.IsInterface && !IsApplicationServiceInterface(item.Type));
+
+        var actionOffenders = actionParameters
+            .Where(parameter => !parameter.IsDefined(typeof(FromServicesAttribute), inherit: false))
+            .Select(parameter => (Owner: parameter.Member.DeclaringType!, Type: parameter.ParameterType))
+            .Where(item => !IsAllowedActionParameterType(item.Type));
+
+        var offenders = strictOffenders
+            .Concat(actionOffenders)
             .Select(item => $"{item.Owner.Name}({item.Type.Name})");
 
         Assert.NotEmpty(controllers);
         Assert.Empty(offenders);
     }
+
+    private static bool IsApplicationServiceInterface(Type type) =>
+        type.IsInterface && type.Assembly == Layers.Application && type.Name.EndsWith("Service");
+
+    private static bool IsAllowedActionParameterType(Type type) =>
+        !type.IsInterface
+        || IsApplicationServiceInterface(type)
+        || (IsFrameworkType(type) && type.GenericTypeArguments.All(IsAllowedActionParameterType));
+
+    private static bool IsFrameworkType(Type type) =>
+        type.Namespace is { } ns && (ns.StartsWith("System") || ns.StartsWith("Microsoft.AspNetCore"));
 
     [Fact]
     public void Infrastructure_exposes_only_its_registration_entry_point()

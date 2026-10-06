@@ -47,7 +47,7 @@ Rules (enforced by `tests/FitnessClub.ArchitectureTests`, using reflection, NetA
 - Domain references only the BCL, and neither Domain nor Application references `System.Linq.Queryable` or `System.Linq.Expressions` (no `IQueryable` leaks).
 - Application references only Domain and DI abstractions. No type in it depends on Infrastructure, Api, ASP.NET Core or EF Core.
 - Api references neither EF Core nor Hangfire. Only `Program` uses Infrastructure, and only `ExceptionToProblemDetailsHandler` uses Domain.
-- Controllers inject only Application `I*Service` interfaces, through the constructor or `[FromServices]`.
+- Controllers inject only Application `I*Service` interfaces, through the constructor or `[FromServices]`. Action parameters may also use framework interfaces (namespaces `System*` and `Microsoft.AspNetCore*`, such as `IFormFile` or `IReadOnlyList<Guid>`) as long as their type arguments follow the same rule, so `IUnitOfWork` or a repository can't slip in as an implicitly injected action parameter.
 - Application services are `internal sealed` and exposed through a public `I{Name}Service`.
 - Infrastructure has exactly one public type, `DependencyInjection`.
 - `FitnessClubDbContext` has `DbSet`s only for aggregate roots.
@@ -62,7 +62,7 @@ Rules (enforced by `tests/FitnessClub.ArchitectureTests`, using reflection, NetA
 - `IRepository<TAggregate> where TAggregate : AggregateRoot`: `GetByIdAsync`, `Add`. Repositories never save.
 - `IUnitOfWork.SaveChangesAsync`: called exactly once per use case, after all aggregates are changed. One unit of work may save several aggregates, for example a check-in changes a `Client` and adds a `Visit`.
 - Value objects are `sealed record`s with a private constructor and a static `Create`/`Of` factory that validates.
-- Domain services live next to their aggregate, behind an interface (`ISessionScheduler`), and depend only on Domain repository interfaces.
+- Domain services live next to their aggregate, behind an interface (`ISessionScheduler`), and depend only on Domain repository interfaces. They are registered in `AddApplication()`.
 - **Optimistic concurrency:** every aggregate root has a shadow `Version` (`Guid`) concurrency token. On save, the DbContext stamps a new version on every root that changed itself or has an owned child that was added, changed or removed. `UnitOfWork` turns `DbUpdateConcurrencyException` into `ConflictException` (409).
 - **Time:** domain methods take `DateTimeOffset now`. Calendar dates and times of day are read in the offset of the value passed in, so callers (sub-projects 2–4) must pass club-local times. Use `TimeProvider.GetLocalNow()` with the container's `TZ` set to the club's zone, and convert any incoming slot to club-local time before calling the domain.
 
