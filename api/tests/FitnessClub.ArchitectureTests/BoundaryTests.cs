@@ -1,3 +1,4 @@
+using System.Reflection;
 using FitnessClub.Domain.Common;
 using FitnessClub.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
@@ -35,20 +36,25 @@ public class BoundaryTests
     [Fact]
     public void Controllers_depend_only_on_application_service_interfaces()
     {
-        var controllers = Layers.Api.ConcreteClasses().Where(type => typeof(ControllerBase).IsAssignableFrom(type)).ToList();
+        var controllers = Layers.Api.DeclaredTypes().Where(type => type.IsClass && typeof(ControllerBase).IsAssignableFrom(type)).ToList();
+
+        const BindingFlags declaredInstance = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
         var injected = controllers
-            .SelectMany(type => type.GetConstructors().SelectMany(constructor => constructor.GetParameters()))
+            .SelectMany(type => type.GetConstructors(declaredInstance).SelectMany(constructor => constructor.GetParameters()))
             .Concat(controllers
-                .SelectMany(type => type.GetMethods())
-                .SelectMany(method => method.GetParameters())
-                .Where(parameter => parameter.IsDefined(typeof(FromServicesAttribute), inherit: false)));
+                .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+                .SelectMany(method => method.GetParameters()))
+            .Select(parameter => (Owner: parameter.Member.DeclaringType!, Type: parameter.ParameterType))
+            .Concat(controllers
+                .SelectMany(type => type.GetProperties(declaredInstance))
+                .Where(property => property.IsDefined(typeof(FromServicesAttribute), inherit: false))
+                .Select(property => (Owner: property.DeclaringType!, Type: property.PropertyType)));
 
         var offenders = injected
-            .Where(parameter => !parameter.ParameterType.IsInterface
-                || parameter.ParameterType.Assembly != Layers.Application
-                || !parameter.ParameterType.Name.EndsWith("Service"))
-            .Select(parameter => $"{parameter.Member.DeclaringType!.Name}({parameter.ParameterType.Name})");
+            .Where(item => item.Type.IsInterface
+                && (item.Type.Assembly != Layers.Application || !item.Type.Name.EndsWith("Service")))
+            .Select(item => $"{item.Owner.Name}({item.Type.Name})");
 
         Assert.NotEmpty(controllers);
         Assert.Empty(offenders);
@@ -58,7 +64,7 @@ public class BoundaryTests
     public void Infrastructure_exposes_only_its_registration_entry_point()
     {
         var offenders = Layers.Infrastructure.DeclaredTypes()
-            .Where(type => type.IsPublic && type != typeof(FitnessClub.Infrastructure.DependencyInjection))
+            .Where(type => type.IsVisible && type != typeof(FitnessClub.Infrastructure.DependencyInjection))
             .Select(type => type.Name);
 
         Assert.Empty(offenders);
