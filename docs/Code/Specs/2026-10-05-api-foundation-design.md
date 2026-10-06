@@ -63,7 +63,7 @@ api/
 
 **Which project may reference which:**
 - **Domain** references nothing.
-- **Application** references Domain, plus EF Core's base package (`Microsoft.EntityFrameworkCore`) so it can see `DbSet<T>`. No database-specific provider.
+- **Application** references Domain, plus EF Core's base package (`Microsoft.EntityFrameworkCore`) so it can see `DbSet<T>`. No database-specific provider. (superseded, see [[2026-10-05-domain-model-and-architecture-design]])
 - **Infrastructure** references Application.
 - **Api** references Application and Infrastructure. Infrastructure is used only to register services at startup.
 
@@ -101,7 +101,7 @@ Methods:
 
 ## Application
 
-- **`IApplicationDbContext`** exposes `DbSet<MembershipPlan>` and `SaveChangesAsync`. Infrastructure implements it.
+- **`IApplicationDbContext`** exposes `DbSet<MembershipPlan>` and `SaveChangesAsync`. Infrastructure implements it. (superseded, see [[2026-10-05-domain-model-and-architecture-design]])
 - **Use-case services**, one per feature area, for example `MembershipPlanService`. They take request models and return response models, and copy fields between models and entities by hand.
 - **Request and response models** are records. Request records carry the validation attributes, such as `[Required]`, `[StringLength]` and `[Range]`, using the limits in the table above.
 - **Application exceptions:**
@@ -112,7 +112,7 @@ The services check name uniqueness in code, because the InMemory provider doesn'
 
 ## Persistence
 
-- `FitnessClubDbContext`, in Infrastructure, implements `IApplicationDbContext`. Each entity has its own `IEntityTypeConfiguration<T>` class, picked up automatically with `ApplyConfigurationsFromAssembly`.
+- `FitnessClubDbContext`, in Infrastructure, implements `IApplicationDbContext` (superseded, see [[2026-10-05-domain-model-and-architecture-design]]). Each entity has its own `IEntityTypeConfiguration<T>` class, picked up automatically with `ApplyConfigurationsFromAssembly`.
 - **Choosing the provider:**
   - `ConnectionStrings:FitnessClub` empty or missing → `UseInMemoryDatabase("FitnessClub")`.
   - Connection string set → `UseSqlServer(connectionString)`.
