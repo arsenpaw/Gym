@@ -68,7 +68,7 @@ Which project may reference which: Domain ← Application ← Infrastructure ←
   - Every endpoint requires a logged-in user (fallback policy). Public endpoints must say `.AllowAnonymous()`.
   - Controllers use `[Authorize(Roles = ...)]` with the `Roles` constants. A method-level `[Authorize]` adds to the class-level one.
 - **Time:** use the injected `TimeProvider`, never `DateTime.UtcNow`. Domain methods take `DateTimeOffset now` and read dates in its offset, so pass club-local time.
-- **InMemory limits:** it doesn't enforce unique indexes or relationships, and it has no transactions. Check uniqueness in services, and still configure the indexes for SQL Server.
+- **InMemory limits:** it doesn't enforce unique indexes or relationships, and it has no transactions. Check uniqueness in services, and still configure the indexes for SQL Server. A save rejected for a stale `Version` still writes nothing: on InMemory, `FitnessClubDbContext` serializes saves and checks every changed root's stored `Version` before writing, so both providers behave the same.
 - **Recurring jobs** are registered only in `Infrastructure/BackgroundJobs/RecurringJobs.Register`, which `UseInfrastructureAsync` calls at startup.
 - **Integration tests:**
   - `factory.CreateClientWithRoles(Roles.Admin)` signs in through the `X-Test-Roles` header. `factory.CreateClient()` is anonymous.

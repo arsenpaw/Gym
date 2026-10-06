@@ -184,13 +184,13 @@ Report queries are read models built in sub-project 5 behind an Application inte
 - Unique indexes: plan name, room name, client phone, trainer phone, trainer identity id (filtered), payment membership id, notification (membership, type) (filtered). InMemory doesn't enforce them, so services still check.
 - Enums are stored as strings.
 - SQL Server uses split queries, so trainers with two owned collections don't multiply rows.
-- InMemory has no transactions: a save rejected by the concurrency check may already have inserted other rows. SQL Server rolls the whole save back. Tests only assert behavior that holds on both.
+- A save rejected by the concurrency check writes nothing on either provider. SQL Server rolls the whole save back in its transaction. InMemory has no transactions, so `FitnessClubDbContext` guards it instead: saves run one at a time behind a process-wide lock, and before writing, every modified or deleted aggregate root has its stored `Version` compared with the one it was loaded with. A missing row or a different version throws `DbUpdateConcurrencyException` before anything is written. The synchronous `SaveChanges` stamps versions and applies the same guard.
 
 ## Testing
 
 - **Unit (Domain):** every rule above, plus `SessionScheduler` against an in-memory fake repository.
 - **Unit (Application):** `MembershipPlanService` against fake repository and unit of work. Asserts that nothing is saved on failure.
-- **Integration (Persistence):** each repository round-trips its aggregate through the real DI container and EF InMemory. This includes children added to an already loaded root, a check-in saving two aggregates in one unit of work, and stale copies (of the root, or with only a child changed) raising `ConflictException`.
+- **Integration (Persistence):** each repository round-trips its aggregate through the real DI container and EF InMemory. This includes children added to an already loaded root, a check-in saving two aggregates in one unit of work, and stale copies (of the root, or with only a child changed) raising `ConflictException`. A rejected save leaves no rows behind: no second visit, membership, payment or booking.
 - **Architecture:** the rules listed under Layers. Each was checked by temporarily breaking it: a public setter, a public field, a public constructor, a `record struct`, a trailing comment, a doc comment, `IQueryable` in Application, a controller injecting a repository, and a controller using Infrastructure.
 - Existing HTTP tests stay green. The only contract change is the problem-details message for sub-cent prices: `Amount can have at most 2 decimal places.`
 
