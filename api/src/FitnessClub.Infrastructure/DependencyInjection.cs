@@ -1,4 +1,6 @@
 using FitnessClub.Application.Abstractions;
+using FitnessClub.Application.Notifications;
+using FitnessClub.Application.Reports;
 using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.MembershipPlans;
 using FitnessClub.Domain.Notifications;
@@ -8,14 +10,17 @@ using FitnessClub.Domain.Trainers;
 using FitnessClub.Domain.Training;
 using FitnessClub.Domain.Visits;
 using FitnessClub.Infrastructure.BackgroundJobs;
+using FitnessClub.Infrastructure.Notifications;
 using FitnessClub.Infrastructure.Persistence;
 using FitnessClub.Infrastructure.Persistence.Repositories;
+using FitnessClub.Infrastructure.Reports;
 using Hangfire;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace FitnessClub.Infrastructure;
 
@@ -43,6 +48,15 @@ public static class DependencyInjection
         services.AddScoped<IRoomRepository, RoomRepository>();
         services.AddScoped<ITrainingSessionRepository, TrainingSessionRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IReportQueries, ReportQueries>();
+
+        services.AddOptions<ExpiryNotificationOptions>()
+            .Bind(configuration.GetSection(ExpiryNotificationOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton(provider => provider.GetRequiredService<IOptions<ExpiryNotificationOptions>>().Value);
+        services.AddScoped<INotificationSender, LoggingNotificationSender>();
+        services.AddScoped<ExpiryNotificationJob>();
 
         services.AddHangfire(hangfire =>
         {

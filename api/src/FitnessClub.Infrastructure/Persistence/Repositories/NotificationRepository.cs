@@ -10,4 +10,7 @@ internal sealed class NotificationRepository(FitnessClubDbContext db) : Reposito
 
     public async Task<IReadOnlyList<Notification>> ListPendingAsync(CancellationToken cancellationToken) =>
         await Set.Where(n => n.Status == NotificationStatus.Pending).OrderBy(n => n.CreatedAt).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Notification>> ListAsync(NotificationStatus? status, CancellationToken cancellationToken) =>
+        await Set.Where(n => status == null || n.Status == status).OrderByDescending(n => n.CreatedAt).ToListAsync(cancellationToken);
 }
