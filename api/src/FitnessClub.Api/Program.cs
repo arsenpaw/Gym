@@ -1,5 +1,6 @@
 using FitnessClub.Api.Auth;
 using FitnessClub.Api.ErrorHandling;
+using FitnessClub.Api.OpenApi;
 using FitnessClub.Application;
 using FitnessClub.Infrastructure;
 using Scalar.AspNetCore;
@@ -13,13 +14,19 @@ builder.Services.AddAuth0Authentication(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ExceptionToProblemDetailsHandler>();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "Fitness Club API v1"));
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 

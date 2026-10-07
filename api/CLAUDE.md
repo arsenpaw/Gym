@@ -29,7 +29,7 @@ dotnet run --project src/FitnessClub.Api                      # http://localhost
 ```
 
 - **Filters need `--project`.** Filters like `--filter-class` and `--filter-method` only work together with `--project`. Run against the whole solution, the test project with no matching tests fails with "zero tests ran".
-- **Development URLs:** `/scalar` (API docs), `/openapi/v1.json`, `/hangfire` (from your own machine only), `/health`.
+- **Development URLs:** `/scalar` and `/swagger` (API docs; use **Authorize** to paste an Auth0 access token), `/openapi/v1.json`, `/hangfire` (from your own machine only), `/health`.
 - **Running locally needs Auth0 settings,** otherwise startup fails with `OptionsValidationException`:
 
 ```sh

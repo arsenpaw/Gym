@@ -13,6 +13,7 @@ public class HostConfigurationTests(FitnessClubApiFactory factory) : IClassFixtu
     [InlineData("/hangfire")]
     [InlineData("/openapi/v1.json")]
     [InlineData("/scalar")]
+    [InlineData("/swagger/index.html")]
     public async Task Development_only_endpoints_are_not_mapped_outside_development(string path)
     {
         var response = await factory.CreateClientWithRoles(Roles.Admin).GetAsync(path, TestContext.Current.CancellationToken);

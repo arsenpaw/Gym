@@ -37,7 +37,7 @@ Set up the skeleton of the `api/` backend that every later sub-project builds on
 | Future database | **SQL Server**: adding `ConnectionStrings:FitnessClub` switches the provider (see Persistence) |
 | Auth | JWT bearer tokens issued by **Auth0**, with access controlled by role |
 | Background jobs | **Hangfire**, storing its data in memory now (`Hangfire.InMemory`) |
-| API docs | Built-in OpenAPI document (`Microsoft.AspNetCore.OpenApi`). Interactive docs page only in Development (Scalar) |
+| API docs | Built-in OpenAPI document (`Microsoft.AspNetCore.OpenApi`). Interactive docs pages only in Development (Scalar at `/scalar`, Swagger UI at `/swagger`), with a JWT bearer security scheme so both can send an Auth0 access token |
 | Tests | xUnit v3. Integration tests use `WebApplicationFactory` |
 | Packages | Central package management (`Directory.Packages.props`) |
 
