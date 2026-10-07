@@ -17,6 +17,7 @@ export const routes: RouteObject[] = [
       {
         element: <RequireRole allowed={staff} />,
         children: [
+          { path: 'check-in', lazy: async () => ({ Component: (await import('../features/check-in/CheckInPage')).CheckInPage }) },
           { path: 'plans', lazy: async () => ({ Component: (await import('../features/plans/PlansPage')).PlansPage }) },
           { path: 'clients', lazy: async () => ({ Component: (await import('../features/clients/ClientsPage')).ClientsPage }) },
           { path: 'clients/:clientId', lazy: async () => ({ Component: (await import('../features/clients/ClientDetailsPage')).ClientDetailsPage }) },
