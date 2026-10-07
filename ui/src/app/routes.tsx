@@ -22,7 +22,9 @@ export const routes: RouteObject[] = [
       },
       {
         element: <RequireRole allowed={everyone} />,
-        children: [],
+        children: [
+          { path: 'rooms', lazy: async () => ({ Component: (await import('../features/rooms/RoomsPage')).RoomsPage }) },
+        ],
       },
       {
         element: <RequireRole allowed={admins} />,
