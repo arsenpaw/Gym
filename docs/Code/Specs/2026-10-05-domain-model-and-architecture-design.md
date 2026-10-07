@@ -12,10 +12,10 @@ Requirements source: [[Fitness Club System]]. This spec replaces the persistence
 |---|---|---|
 | 1 | Foundation | implemented |
 | 1b | **Domain model and architecture** (this spec) | implemented |
-| 2 | Clients, memberships, visits (use cases + endpoints) | not started |
-| 3 | Trainers, schedules, rooms, bookings (use cases + endpoints) | not started |
-| 4 | Membership expiry notifications (Hangfire job) | not started |
-| 5 | Reports | not started |
+| 2 | Clients, memberships, visits (use cases + endpoints): [[2026-10-07-clients-endpoints-design]] | implemented |
+| 3 | Trainers, schedules, rooms, bookings (use cases + endpoints): [[2026-10-07-trainers-endpoints-design]], [[2026-10-07-rooms-endpoints-design]], [[2026-10-07-sessions-endpoints-design]] | implemented |
+| 4 | Membership expiry notifications (Hangfire job): [[2026-10-07-expiry-notifications-design]] | implemented |
+| 5 | Reports: [[2026-10-07-reports-design]] | implemented |
 
 ## Goal
 
@@ -157,7 +157,7 @@ Repository: `TrainerHasSessionDuringAsync`, `RoomIsBookedDuringAsync`, `ClientHa
 
 ### Notification (`Domain/Notifications`)
 
-`ClientId`, `MembershipId`, `Type` (`MembershipExpiring`), `Channel` (`Email` when the client has one, else `Sms`), `Recipient`, `Message`, `Status` (`Pending` → `Sent` | `Failed`, and `Failed` → `Pending` through `Retry()`), `CreatedAt`, `SentAt`, `FailureReason` (≤ 500, truncated). `MembershipExpiring(client, membership, now)` refuses memberships for which `Client.NeedsExpiryNotice` is false (renewed, cancelled, ended or used up). Only one notice per membership and type (unique index plus `ExistsForMembershipAsync`), so the daily job is idempotent. Repository: `ExistsForMembershipAsync`, `ListPendingAsync`.
+`ClientId`, `MembershipId`, `Type` (`MembershipExpiring`), `Channel` (`Email` when the client has one, else `Sms`), `Recipient`, `Message`, `Status` (`Pending` → `Sent` | `Failed`, and `Failed` → `Pending` through `Retry()`), `CreatedAt`, `SentAt`, `FailureReason` (≤ 500, truncated). `MembershipExpiring(client, membership, now)` refuses memberships for which `Client.NeedsExpiryNotice` is false (renewed, cancelled, ended or used up). Only one notice per membership and type (unique index plus `ExistsForMembershipAsync`), so the daily job is idempotent. Repository: `ExistsForMembershipAsync`, `ListPendingAsync`, `ListAsync(status?)`.
 
 ## Requirement coverage
 
@@ -204,7 +204,7 @@ Report queries are read models built in sub-project 5 behind an Application inte
 - Club time zone configuration (`TZ` in compose, and conversion of incoming times).
 - EF migrations (created when SQL Server is switched on).
 - Phone numbers are stored as typed: `+380…` and `380…` are different values. Normalizing to E.164 needs a country default.
-- Expiry notices can target a membership that hasn't started yet or an unused single-visit pass. The job (sub-project 4) narrows the window.
+- Expiry notices can target a membership that hasn't started yet or an unused single-visit pass. The job (sub-project 4) narrows the window: it skips memberships whose validity is no longer than the notice window. See [[2026-10-07-expiry-notifications-design]].
 - Cancelling a membership doesn't refund its payment or cancel future bookings. Refunds come with the payment use cases.
 - The price ceiling of 1,000,000 exists only as a request rule, not in `MembershipPlan`.
 - Version stamping scans tracked entries for each changed owned child (O(n²)). That's fine at this aggregate size.

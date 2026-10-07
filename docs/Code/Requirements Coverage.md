@@ -1,0 +1,40 @@
+---
+tags: [requirements, api]
+date: 2026-10-07
+---
+
+# Requirements Coverage
+
+Maps each requirement in [[Fitness Club System]] to its API endpoints. The domain model is in [[2026-10-05-domain-model-and-architecture-design]]. Each area has its own spec, linked below.
+
+## Coverage
+
+| # | Requirement | Endpoints | Spec | Status |
+|---|---|---|---|---|
+| 1 | Client records (name, age, phone, membership, expiry) | `GET/POST /api/clients`, `GET/PUT /api/clients/{id}`, `POST /api/clients/{id}/memberships`, `POST /api/clients/{id}/memberships/{membershipId}/cancel` | [[2026-10-07-clients-endpoints-design]] | ✅ |
+| 2 | Visits recorded on every check-in | `POST /api/clients/{id}/visits`, `GET /api/clients/{id}/visits` | [[2026-10-07-clients-endpoints-design]] | ✅ |
+| 3 | Trainer profile (specialization, schedule, client list) | `GET/POST /api/trainers`, `GET/PUT /api/trainers/{id}`, `/activate`, `/deactivate`, `PUT /{id}/working-hours`, `POST/DELETE /{id}/clients/{clientId}`, `PUT /{id}/identity` | [[2026-10-07-trainers-endpoints-design]] | ✅ |
+| 4 | Group and individual session sign-ups | Rooms: `GET/POST /api/rooms`, `GET/PUT /api/rooms/{id}`, `/activate`, `/deactivate`. Sessions: `GET /api/sessions?from&to`, `GET /api/sessions/mine`, `GET /api/sessions/{id}`, `POST /api/sessions`, `POST /{id}/cancel`, `POST /{id}/bookings`, `POST /{id}/bookings/{clientId}/cancel` | [[2026-10-07-rooms-endpoints-design]], [[2026-10-07-sessions-endpoints-design]] | ✅ |
+| 5 | Configurable plans (single visit, monthly, yearly) | `GET/POST /api/membership-plans`, `GET/PUT /{id}`, `/activate`, `/deactivate` | [[2026-10-05-api-foundation-design]] | ✅ |
+| 6 | Automatic expiry notification | Daily Hangfire job `membership-expiry-notifications` at 08:00 club time; `GET /api/notifications?status`, `POST /{id}/retry`, `POST /run` | [[2026-10-07-expiry-notifications-design]] | ✅ (the sender only logs; no real email or SMS provider yet) |
+| 7 | Report: clients with visit activity | `GET /api/reports/client-activity?from&to` | [[2026-10-07-reports-design]] | ✅ |
+| 8 | Report: revenue per month / year | `GET /api/reports/revenue?year&month` | [[2026-10-07-reports-design]] | ✅ |
+| 9 | Report: trainer and room load by day | `GET /api/reports/load?from&to` | [[2026-10-07-reports-design]] | ✅ |
+
+## Roles
+
+| Area | Read | Write |
+|---|---|---|
+| Membership plans | Admin, Receptionist | Admin |
+| Clients, memberships, visits | Admin, Receptionist | Admin, Receptionist |
+| Trainers | Admin, Receptionist | Admin |
+| Rooms | Admin, Receptionist, Trainer | Admin |
+| Sessions, bookings | Admin, Receptionist, Trainer (`/mine`: Trainer only) | Admin, Receptionist |
+| Notifications, reports | Admin | Admin |
+
+## Open items
+
+- Notifications go through `LoggingNotificationSender`. A real email or SMS provider replaces it behind `INotificationSender`.
+- "Now" is `TimeProvider.GetLocalNow()`, so the server's time zone must be the club's. Set `TZ` in the Docker image.
+- Enums are sent as strings through per-property converters. A global JSON enum converter in `Program.cs` would make this one rule.
+- The notifications list has no paging.
