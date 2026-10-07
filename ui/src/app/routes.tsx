@@ -16,7 +16,9 @@ export const routes: RouteObject[] = [
       { index: true, element: <HomeRedirect /> },
       {
         element: <RequireRole allowed={staff} />,
-        children: [],
+        children: [
+          { path: 'plans', lazy: async () => ({ Component: (await import('../features/plans/PlansPage')).PlansPage }) },
+        ],
       },
       {
         element: <RequireRole allowed={everyone} />,
