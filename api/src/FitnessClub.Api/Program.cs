@@ -4,17 +4,25 @@ using FitnessClub.Api.OpenApi;
 using FitnessClub.Application;
 using FitnessClub.Infrastructure;
 using Scalar.AspNetCore;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+BuildTimeDocument.AddPlaceholderSettingsWhenGenerating(builder.Configuration);
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddAuth0Authentication(builder.Configuration);
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.Strict);
+builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ExceptionToProblemDetailsHandler>();
-builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+    options.AddOperationTransformer<OperationIdTransformer>();
+});
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();

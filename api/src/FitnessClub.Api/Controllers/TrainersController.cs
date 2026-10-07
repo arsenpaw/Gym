@@ -20,6 +20,7 @@ public sealed class TrainersController(ITrainerService service) : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = Roles.Admin)]
+    [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<ActionResult<TrainerResponse>> Hire(TrainerRequest request, CancellationToken cancellationToken)
     {
         var trainer = await service.HireAsync(request, cancellationToken);
@@ -33,6 +34,7 @@ public sealed class TrainersController(ITrainerService service) : ControllerBase
 
     [HttpPost("{id:guid}/activate")]
     [Authorize(Roles = Roles.Admin)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
         await service.ActivateAsync(id, cancellationToken);
@@ -41,6 +43,7 @@ public sealed class TrainersController(ITrainerService service) : ControllerBase
 
     [HttpPost("{id:guid}/deactivate")]
     [Authorize(Roles = Roles.Admin)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
         await service.DeactivateAsync(id, cancellationToken);
@@ -54,6 +57,7 @@ public sealed class TrainersController(ITrainerService service) : ControllerBase
 
     [HttpPost("{id:guid}/clients/{clientId:guid}")]
     [Authorize(Roles = Roles.Admin)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> AssignClient(Guid id, Guid clientId, CancellationToken cancellationToken)
     {
         await service.AssignClientAsync(id, clientId, cancellationToken);
@@ -62,6 +66,7 @@ public sealed class TrainersController(ITrainerService service) : ControllerBase
 
     [HttpDelete("{id:guid}/clients/{clientId:guid}")]
     [Authorize(Roles = Roles.Admin)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> UnassignClient(Guid id, Guid clientId, CancellationToken cancellationToken)
     {
         await service.UnassignClientAsync(id, clientId, cancellationToken);
@@ -70,6 +75,7 @@ public sealed class TrainersController(ITrainerService service) : ControllerBase
 
     [HttpPut("{id:guid}/identity")]
     [Authorize(Roles = Roles.Admin)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> LinkIdentity(Guid id, LinkIdentityRequest request, CancellationToken cancellationToken)
     {
         await service.LinkIdentityAsync(id, request, cancellationToken);

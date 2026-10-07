@@ -19,6 +19,7 @@ public sealed class ClientsController(IClientService service) : ControllerBase
         service.GetAsync(id, cancellationToken);
 
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<ActionResult<ClientDetailsResponse>> Register(ClientRequest request, CancellationToken cancellationToken)
     {
         var client = await service.RegisterAsync(request, cancellationToken);
@@ -30,6 +31,7 @@ public sealed class ClientsController(IClientService service) : ControllerBase
         service.UpdateAsync(id, request, cancellationToken);
 
     [HttpPost("{id:guid}/memberships")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<ActionResult<MembershipResponse>> PurchaseMembership(
         Guid id, PurchaseMembershipRequest request, CancellationToken cancellationToken)
     {
@@ -38,6 +40,7 @@ public sealed class ClientsController(IClientService service) : ControllerBase
     }
 
     [HttpPost("{id:guid}/memberships/{membershipId:guid}/cancel")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> CancelMembership(Guid id, Guid membershipId, CancellationToken cancellationToken)
     {
         await service.CancelMembershipAsync(id, membershipId, cancellationToken);
@@ -45,6 +48,7 @@ public sealed class ClientsController(IClientService service) : ControllerBase
     }
 
     [HttpPost("{id:guid}/visits")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<ActionResult<VisitResponse>> CheckIn(Guid id, CancellationToken cancellationToken)
     {
         var visit = await service.CheckInAsync(id, cancellationToken);

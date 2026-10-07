@@ -69,6 +69,8 @@ public class MembershipPlansEndpointsTests(FitnessClubApiFactory factory) : ICla
     [InlineData("""{ "name": "Text price", "price": "abc", "validityDays": 30 }""")]
     [InlineData("""{ "name": "Huge price", "price": 1e30, "validityDays": 30 }""")]
     [InlineData("""{ "name": "Not json" """)]
+    [InlineData("""{ "name": "Quoted price", "price": "100", "validityDays": 30 }""")]
+    [InlineData("""{ "name": "Quoted days", "price": 100, "validityDays": "30" }""")]
     public async Task Create_with_invalid_body_returns_400_problem_details(string json)
     {
         using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");

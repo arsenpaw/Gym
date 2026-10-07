@@ -29,6 +29,7 @@ public sealed class SessionsController(ITrainingSessionService service) : Contro
 
     [HttpPost]
     [Authorize(Roles = Staff)]
+    [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<ActionResult<SessionResponse>> Schedule(ScheduleSessionRequest request, CancellationToken cancellationToken)
     {
         var session = await service.ScheduleAsync(request, cancellationToken);
@@ -37,6 +38,7 @@ public sealed class SessionsController(ITrainingSessionService service) : Contro
 
     [HttpPost("{id:guid}/cancel")]
     [Authorize(Roles = Staff)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
         await service.CancelAsync(id, cancellationToken);
@@ -45,6 +47,7 @@ public sealed class SessionsController(ITrainingSessionService service) : Contro
 
     [HttpPost("{id:guid}/bookings")]
     [Authorize(Roles = Staff)]
+    [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<ActionResult<BookingResponse>> Book(Guid id, BookSessionRequest request, CancellationToken cancellationToken)
     {
         var booking = await service.BookAsync(id, request, cancellationToken);
@@ -53,6 +56,7 @@ public sealed class SessionsController(ITrainingSessionService service) : Contro
 
     [HttpPost("{id:guid}/bookings/{clientId:guid}/cancel")]
     [Authorize(Roles = Staff)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> CancelBooking(Guid id, Guid clientId, CancellationToken cancellationToken)
     {
         await service.CancelBookingAsync(id, clientId, cancellationToken);
