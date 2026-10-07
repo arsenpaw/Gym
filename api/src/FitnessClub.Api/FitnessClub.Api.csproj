@@ -9,6 +9,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FitnessClub.Application\FitnessClub.Application.csproj" />

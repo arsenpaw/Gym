@@ -8,9 +8,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\FitnessClub.Api\FitnessClub.Api.csproj" />
-  </ItemGroup>
-  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>
