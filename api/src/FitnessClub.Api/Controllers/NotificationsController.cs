@@ -15,6 +15,7 @@ public sealed class NotificationsController(IExpiryNotificationService service) 
         service.ListAsync(request, cancellationToken);
 
     [HttpPost("{id:guid}/retry")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Retry(Guid id, CancellationToken cancellationToken)
     {
         await service.RetryAsync(id, cancellationToken);

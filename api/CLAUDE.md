@@ -76,6 +76,14 @@ Which project may reference which: Domain ← Application ← Infrastructure ←
   - Repository tests derive from `PersistenceTestBase`. Each of its helpers runs in its own DI scope.
 - **Warnings are errors.** In tests, pass `TestContext.Current.CancellationToken` to every async call.
 
+## OpenAPI document (UI contract)
+
+- Every Debug build writes `ui/openapi/fitnessclub.json` (`Microsoft.Extensions.ApiDescription.Server`). The UI generates its client from it, so commit it with API changes.
+- `OperationIdTransformer` names operations `{Controller}_{Action}`. Renaming an action renames the UI's generated hook.
+- Numbers are strict (`JsonNumberHandling.Strict` for MVC and `ConfigureHttpJsonOptions`): `"100"` is a 400, and the document types numbers as numbers.
+- Declare `[ProducesResponseType(StatusCodes.Status201Created)]` on `CreatedAtAction` actions and `Status204NoContent` on `NoContent()` actions. Never add class-level response attributes or `[Produces]`.
+- `BuildTimeDocument` supplies placeholder Auth0 settings only while the build generates the document.
+
 ## Persistence switch
 
 - **`ConnectionStrings:FitnessClub` empty:** EF Core and Hangfire both use in-memory storage. Data is lost on restart.
