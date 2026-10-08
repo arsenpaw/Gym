@@ -2,7 +2,7 @@
 
 ## Mock data
 
-The `SeedMockData` EF migration fills a new SQL Server database with demo data, generated in `api/src/FitnessClub.Infrastructure/Persistence/Migrations/MockData.cs`. The InMemory database (no connection string) stays empty.
+The `SeedMockData` EF migration fills a new SQL Server database with demo data, generated in `api/src/FitnessClub.Infrastructure/Persistence/Migrations/MockData.cs`.
 
 Dates are relative to the moment the migration runs, so the data always looks current: memberships expire soon, sessions run this week, and revenue spreads over the last months.
 

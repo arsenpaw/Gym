@@ -37,6 +37,9 @@ docker compose -f deploy/docker-compose.yml logs -f ui
 docker compose -f deploy/docker-compose.yml down
 ```
 
+- To run only the database for a locally run API (`dotnet run`): `docker compose -f deploy/docker-compose.yml up -d db`.
+- `deploy/.env` needs every key in `deploy/.env.example`. Compose names the first missing one and stops.
+
 ## Notes
 
 - The API container runs in Production, so the OpenAPI document, Scalar page and Hangfire dashboard aren't available there.
