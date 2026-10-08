@@ -1,3 +1,4 @@
+using FitnessClub.Application.ClientMessages;
 using FitnessClub.Application.Clients;
 using FitnessClub.Application.MembershipPlans;
 using FitnessClub.Application.Notifications;
@@ -21,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<ITrainingSessionService, TrainingSessionService>();
         services.AddScoped<ISessionScheduler, SessionScheduler>();
         services.AddScoped<IExpiryNotificationService, ExpiryNotificationService>();
+        services.AddScoped<IClientMessageService, ClientMessageService>();
         services.AddScoped<IReportService, ReportService>();
         return services;
     }
