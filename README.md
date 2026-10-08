@@ -3,6 +3,16 @@
 Staff portal for a fitness club: clients, memberships, visits, trainers, rooms, bookings, expiry notifications and reports.
 .NET 10 API + React UI + SQL Server, all in Docker.
 
+## Live demo
+
+https://gym.arsenhome.win
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `admin.demo@example.com` | `4T9w8XKtgGxe#93` |
+| Receptionist | `reception.demo@example.com` | `7UNY3Nqjisgm#73` |
+| Trainer | `olena.kovalenko@example.com` | `V2adqbrHTize#11` |
+
 ## Run
 
 Needs Docker Desktop. On Apple silicon, SQL Server runs under amd64 emulation.
@@ -19,7 +29,7 @@ docker compose -f deploy/docker-compose.yml ps              # wait until all thr
 | API docs (Scalar) | http://localhost:8080/scalar |
 | Health | http://localhost:8080/health |
 
-Sign in with a demo user from [Demo Data and Users](docs/Code/Demo%20Data%20and%20Users.md). The API migrates and seeds mock data on first start.
+Sign in with the same test accounts as the live demo (details in [Demo Data and Users](docs/Code/Demo%20Data%20and%20Users.md)). The API migrates and seeds mock data on first start.
 
 Stop with `docker compose -f deploy/docker-compose.yml down`. Add `-v` to wipe the database too.
 To run without Docker, see `api/CLAUDE.md` and `ui/CLAUDE.md`. All settings are in `deploy/CLAUDE.md`.

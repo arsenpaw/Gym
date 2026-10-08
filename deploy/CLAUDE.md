@@ -72,6 +72,14 @@ The server stack for Dokploy / Traefik. It runs the same `db`, `api` and `ui` wi
 - **Logs:** the `local` driver, at most 5 × 10 MB per container.
 - **Project name:** `fitnessclub-deploy`, so its containers and `db-data` volume are separate from the local stack's.
 
+**Example:** the live deployment runs this stack with `GYM_UI_HOST=gym.arsenhome.win` and `GYM_API_HOST=gym-api.arsenhome.win`, so the UI is https://gym.arsenhome.win and the API health check is https://gym-api.arsenhome.win/health. Test logins (dev Auth0 tenant, see `docs/Code/Demo Data and Users.md`):
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `admin.demo@example.com` | `4T9w8XKtgGxe#93` |
+| Receptionist | `reception.demo@example.com` | `7UNY3Nqjisgm#73` |
+| Trainer | `olena.kovalenko@example.com` | `V2adqbrHTize#11` |
+
 In Dokploy, point a Compose service at `deploy/docker-compose.server.yml` and paste the variables into its Environment tab. By hand, from the repo root (the `GYM_PROXY_NETWORK` network must already exist):
 
 ```sh
