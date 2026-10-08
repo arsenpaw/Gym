@@ -18,7 +18,11 @@ This file covers only deployment. Every service runs as a Docker container, and 
   - Built with `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` and `AUTH0_UI_CLIENT_ID` from `deploy/.env` as build args. They are baked into the JS, so rebuild after changing them.
   - nginx proxies `/api/` to `api:8080`, so the browser talks to one origin and the API needs no CORS.
   - Starts after the API is healthy.
-- Database: SQL Server, added when the API switches off in-memory storage. The API then needs `ConnectionStrings__FitnessClub`.
+- `db`: SQL Server 2022, on `127.0.0.1:1433` so a locally run API can use it too.
+  - Needs `DB_SA_PASSWORD` in `deploy/.env` (at least 8 characters, with upper case, lower case, digits and symbols).
+  - Data lives in the `db-data` volume. `docker compose ... down -v` wipes it, and the next API start migrates and seeds again.
+  - The image is amd64 only, so on Apple silicon it runs under emulation.
+  - The API gets `ConnectionStrings__FitnessClub` pointing at `db` and starts after `db` is healthy. At startup it applies the EF migrations, including the mock data (see `api/CLAUDE.md`).
 
 ## Commands
 
@@ -36,5 +40,5 @@ docker compose -f deploy/docker-compose.yml down
 ## Notes
 
 - The API container runs in Production, so the OpenAPI document, Scalar page and Hangfire dashboard aren't available there.
-- Data is in memory until a database is added. Restarting the container wipes it.
-- Still to decide: environments, TLS in front of the UI, and volumes for the database.
+- The API container runs in UTC, so seeded times and "today" follow UTC.
+- Still to decide: environments and TLS in front of the UI.
