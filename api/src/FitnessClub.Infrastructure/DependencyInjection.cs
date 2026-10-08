@@ -78,10 +78,11 @@ public static class DependencyInjection
 
     public static async Task UseInfrastructureAsync(this WebApplication app)
     {
+        await InitializeDatabaseAsync(app.Services);
+
         if (app.Environment.IsDevelopment())
             app.MapHangfireDashboard("/hangfire").AllowAnonymous();
 
-        await InitializeDatabaseAsync(app.Services);
         RecurringJobs.Register(app.Services.GetRequiredService<IRecurringJobManager>());
     }
 
