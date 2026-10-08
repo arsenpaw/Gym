@@ -1,3 +1,4 @@
+using FitnessClub.Application.Common;
 using FitnessClub.Domain.Rooms;
 using FitnessClub.IntegrationTests.Infrastructure;
 
@@ -24,5 +25,17 @@ public class RoomRepositoryTests(FitnessClubApiFactory factory) : PersistenceTes
         Assert.DoesNotContain(activeOnly, r => r.Id == inactive.Id);
         Assert.Contains(all, r => r.Id == inactive.Id);
         Assert.True(await ReadAsync<IRoomRepository, bool>(rooms => rooms.NameExistsAsync(active.Name.ToLowerInvariant(), null, Ct)));
+    }
+
+    [Fact]
+    public async Task Saving_a_duplicate_name_past_the_service_check_is_a_conflict_and_writes_nothing()
+    {
+        var name = $"Room {Guid.NewGuid():N}";
+        await SaveAsync<IRoomRepository>(rooms => rooms.Add(Room.Create(name, 20)));
+
+        await Assert.ThrowsAsync<ConflictException>(() => SaveAsync<IRoomRepository>(rooms => rooms.Add(Room.Create(name, 10))));
+
+        var all = await ReadAsync<IRoomRepository, IReadOnlyList<Room>>(rooms => rooms.ListAsync(true, Ct));
+        Assert.Single(all, r => r.Name == name);
     }
 }

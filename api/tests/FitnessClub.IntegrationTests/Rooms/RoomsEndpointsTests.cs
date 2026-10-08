@@ -248,4 +248,18 @@ public class RoomsEndpointsTests(FitnessClubApiFactory factory) : IClassFixture<
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Concurrent_creates_with_the_same_name_return_one_201_and_one_409()
+    {
+        var admin = factory.CreateClientWithRoles(Roles.Admin);
+        var body = NewRoom();
+
+        var responses = await Task.WhenAll(
+            admin.PostAsJsonAsync(BaseUrl, body, Ct),
+            admin.PostAsJsonAsync(BaseUrl, body, Ct));
+
+        HttpStatusCode[] expected = [HttpStatusCode.Created, HttpStatusCode.Conflict];
+        Assert.Equal(expected, responses.Select(response => response.StatusCode).Order().ToArray());
+    }
 }
