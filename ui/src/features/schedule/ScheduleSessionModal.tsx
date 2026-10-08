@@ -3,16 +3,16 @@ import { Button, Group, Modal, SimpleGrid, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { useForm, useWatch } from 'react-hook-form';
-import { DateInput, NumberInput, SegmentedControl, Select, TextInput, TimeInput } from 'react-hook-form-mantine';
+import { NumberInput, SegmentedControl, Select, TextInput, TimeInput } from 'react-hook-form-mantine';
 import { useRoomsList } from '../../api/generated/endpoints/rooms/rooms';
 import { useSessionsSchedule } from '../../api/generated/endpoints/sessions/sessions';
 import { useTrainersList } from '../../api/generated/endpoints/trainers/trainers';
 import { SessionType } from '../../api/generated/model';
-import { parseIsoDate } from '../../lib/dates';
+import { today } from '../../lib/dates';
 import { invalidateSessions } from './invalidateSessions';
 import { durations, sessionFormSchema, toScheduleRequest, type SessionFormValues } from './sessionForm';
 
-export type SessionSlot = { date: string | null; startTime: string };
+export type SessionSlot = { date: string; startTime: string };
 
 export const ScheduleSessionModal = ({ slot, onClose }: { slot: SessionSlot | null; onClose: () => void }) => (
   <Modal opened={slot !== null} onClose={onClose} title="New session" size="lg" centered>
@@ -77,7 +77,7 @@ const ScheduleSessionForm = ({ slot, onDone }: { slot: SessionSlot; onDone: () =
           />
         </SimpleGrid>
         <SimpleGrid cols={{ base: 1, sm: 3 }}>
-          <DateInput control={control} name="date" label="Date" placeholder="YYYY-MM-DD" valueFormat="YYYY-MM-DD" dateParser={parseIsoDate} withAsterisk />
+          <TextInput control={control} name="date" type="date" label="Date" min={today()} withAsterisk />
           <TimeInput control={control} name="startTime" label="Starts at" withAsterisk />
           <Select control={control} name="durationMinutes" label="Duration" data={durations} withAsterisk allowDeselect={false} />
         </SimpleGrid>

@@ -22,7 +22,7 @@ export const sessionFormSchema = z
     type: z.enum(SessionType),
     trainerId: z.string().nullable().refine((value) => Boolean(value), 'Choose a trainer'),
     roomId: z.string().nullable().refine((value) => Boolean(value), 'Choose a room'),
-    date: z.iso.date().nullable().refine((value) => Boolean(value), 'Choose a date'),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a full date'),
     startTime: z.string().regex(timePattern, 'Enter a start time'),
     durationMinutes: z.enum(durations.map((d) => d.value) as [string, ...string[]], { error: 'Choose a duration' }),
     capacity: z.union([z.literal(''), z.number()]),

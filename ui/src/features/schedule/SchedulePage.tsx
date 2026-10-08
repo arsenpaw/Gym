@@ -86,7 +86,7 @@ export const SchedulePage = () => {
               value={roomFilter}
               onChange={setRoomFilter}
             />
-            <Button leftSection={<IconPlus size={16} />} onClick={() => setNewSession({ date: null, startTime: '' })}>New session</Button>
+            <Button leftSection={<IconPlus size={16} />} onClick={() => setNewSession({ date: '', startTime: '' })}>New session</Button>
           </Group>
         )}
       </Group>

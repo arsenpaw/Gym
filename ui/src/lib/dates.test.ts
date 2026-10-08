@@ -1,15 +1,9 @@
-import { parseIsoDate } from './dates';
+import dayjs from './dayjs';
+import { today } from './dates';
 
-describe('parseIsoDate', () => {
-  it('accepts only complete, real YYYY-MM-DD dates', () => {
-    expect(parseIsoDate('1995-03-14')).toBe('1995-03-14');
-    expect(parseIsoDate(' 1995-03-14 ')).toBe('1995-03-14');
-  });
-
-  it('never turns partial or impossible input into another date', () => {
-    expect(parseIsoDate('2026-10-0')).toBeNull();
-    expect(parseIsoDate('2026-10-00')).toBeNull();
-    expect(parseIsoDate('2026-02-30')).toBeNull();
-    expect(parseIsoDate('14.03.1995')).toBeNull();
+describe('today', () => {
+  it('is the local date as YYYY-MM-DD, the value of a native date input', () => {
+    expect(today()).toBe(dayjs().format('YYYY-MM-DD'));
+    expect(today()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });

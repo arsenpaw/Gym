@@ -86,4 +86,25 @@ describe('ScheduleSessionModal', () => {
 
     expect(await within(dialog).findByText('The session must start in the future')).toBeInTheDocument();
   });
+
+  it('never schedules on the slot date when an impossible date was typed', async () => {
+    let scheduled = 0;
+    server.use(
+      getSessionsScheduleMockHandler(() => {
+        scheduled += 1;
+        return session();
+      }),
+    );
+    const { user } = renderPage(<ScheduleSessionModal slot={{ date: tomorrow, startTime: '10:00' }} onClose={() => {}} />);
+    const dialog = await screen.findByRole('dialog');
+
+    await fillCommonFields(user, dialog);
+    const date = within(dialog).getByLabelText(/Date/);
+    await user.clear(date);
+    await user.type(date, '2030-02-30');
+    await user.click(within(dialog).getByRole('button', { name: 'Schedule' }));
+
+    expect(await within(dialog).findByText('Enter a full date')).toBeInTheDocument();
+    expect(scheduled).toBe(0);
+  });
 });

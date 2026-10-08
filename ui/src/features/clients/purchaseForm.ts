@@ -5,10 +5,10 @@ import dayjs from '../../lib/dayjs';
 
 export const purchaseFormSchema = ClientsPurchaseMembershipBody.extend({
   planId: z.string().nullable().refine((value) => Boolean(value), 'Choose a plan'),
-  startsOn: z.iso
-    .date()
-    .nullable()
-    .refine((value) => value === null || !dayjs(value).isBefore(dayjs(), 'day'), 'A membership cannot start in the past'),
+  startsOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a full start date')
+    .refine((value) => !dayjs(value).isBefore(dayjs(), 'day'), 'A membership cannot start in the past'),
   paymentMethod: z.enum(PaymentMethod, { error: 'Choose how the client paid' }),
 });
 
