@@ -1,7 +1,7 @@
 using FitnessClub.Application.Abstractions;
 using FitnessClub.Domain.Notifications;
 
-namespace FitnessClub.UnitTests.Fakes;
+namespace FitnessClub.IntegrationTests.Services;
 
 internal sealed class FakeNotificationSender : INotificationSender
 {

@@ -1,24 +1,26 @@
 using FitnessClub.Application.Common;
 using FitnessClub.Application.Trainers;
+using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.Common;
+using FitnessClub.Domain.Trainers;
+using FitnessClub.IntegrationTests.Infrastructure;
 using FitnessClub.UnitTests.Domain;
-using FitnessClub.UnitTests.Fakes;
 
-namespace FitnessClub.UnitTests.Application;
+namespace FitnessClub.IntegrationTests.Services;
 
-public class TrainerServiceTests
+public class TrainerServiceTests : ServiceTestBase
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 7, 9, 30, 0, TimeSpan.FromHours(3));
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private readonly FakeUnitOfWork _unitOfWork = new();
-    private readonly InMemoryClientRepository _clients = new();
+    private readonly IClientRepository _clients;
     private readonly TrainerService _service;
 
-    public TrainerServiceTests()
+    public TrainerServiceTests(FitnessClubApiFactory factory) : base(factory)
     {
-        _service = new TrainerService(new InMemoryTrainerRepository(), _clients, _unitOfWork, new FakeTimeProvider(Now));
+        _clients = Get<IClientRepository>();
+        _service = new TrainerService(Get<ITrainerRepository>(), _clients, UnitOfWork, new FakeTimeProvider(Now));
     }
 
     private static TrainerRequest Request(
@@ -45,7 +47,7 @@ public class TrainerServiceTests
         Assert.Equal("Bondar Taras", loaded.FullName);
         Assert.Empty(loaded.WorkingHours);
         Assert.Empty(loaded.Clients);
-        Assert.Equal(1, _unitOfWork.SaveCount);
+        Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -62,7 +64,7 @@ public class TrainerServiceTests
         await _service.HireAsync(Request(phone: "+380501112233"), Ct);
 
         await Assert.ThrowsAsync<ConflictException>(() => _service.HireAsync(Request(firstName: "Ivan", phone: "+380 50 111 22 33"), Ct));
-        Assert.Equal(1, _unitOfWork.SaveCount);
+        Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -70,7 +72,7 @@ public class TrainerServiceTests
     {
         await Assert.ThrowsAsync<DomainException>(() => _service.HireAsync(Request(phone: "12345"), Ct));
         await Assert.ThrowsAsync<DomainException>(() => _service.HireAsync(Request(email: "not-an-email"), Ct));
-        Assert.Equal(0, _unitOfWork.SaveCount);
+        Assert.Equal(0, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -87,7 +89,7 @@ public class TrainerServiceTests
         var updated = await _service.UpdateProfileAsync(hired.Id, Request(specialization: "  Pilates "), Ct);
 
         Assert.Equal("Pilates", updated.Specialization);
-        Assert.Equal(2, _unitOfWork.SaveCount);
+        Assert.Equal(2, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -99,14 +101,14 @@ public class TrainerServiceTests
         await Assert.ThrowsAsync<ConflictException>(() => _service.UpdateProfileAsync(other.Id, Request(phone: "+380501112233"), Ct));
 
         Assert.Equal("+380509998877", (await _service.GetAsync(other.Id, Ct)).Phone);
-        Assert.Equal(2, _unitOfWork.SaveCount);
+        Assert.Equal(2, UnitOfWork.SaveCount);
     }
 
     [Fact]
     public async Task UpdateProfileAsync_for_missing_trainer_throws_not_found()
     {
         await Assert.ThrowsAsync<NotFoundException>(() => _service.UpdateProfileAsync(Guid.NewGuid(), Request(), Ct));
-        Assert.Equal(0, _unitOfWork.SaveCount);
+        Assert.Equal(0, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -138,7 +140,7 @@ public class TrainerServiceTests
     public async Task DeactivateAsync_for_missing_trainer_throws_not_found_and_does_not_save()
     {
         await Assert.ThrowsAsync<NotFoundException>(() => _service.DeactivateAsync(Guid.NewGuid(), Ct));
-        Assert.Equal(0, _unitOfWork.SaveCount);
+        Assert.Equal(0, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -155,7 +157,7 @@ public class TrainerServiceTests
                 new WorkingHoursResponse(DayOfWeek.Monday, new TimeOnly(15, 0), new TimeOnly(19, 0)),
                 new WorkingHoursResponse(DayOfWeek.Tuesday, new TimeOnly(14, 0), new TimeOnly(20, 0))],
             updated.WorkingHours);
-        Assert.Equal(3, _unitOfWork.SaveCount);
+        Assert.Equal(3, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -176,7 +178,7 @@ public class TrainerServiceTests
 
         await Assert.ThrowsAsync<DomainException>(() => _service.SetWorkingHoursAsync(
             trainer.Id, [Hours(DayOfWeek.Monday, 9, 13), Hours(DayOfWeek.Monday, 12, 18)], Ct));
-        Assert.Equal(1, _unitOfWork.SaveCount);
+        Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -193,6 +195,7 @@ public class TrainerServiceTests
         var trainer = await _service.HireAsync(Request(), Ct);
         var client = TestData.Client();
         _clients.Add(client);
+        await SeedAsync();
 
         await _service.AssignClientAsync(trainer.Id, client.Id, Ct);
 
@@ -200,7 +203,7 @@ public class TrainerServiceTests
         var assigned = Assert.Single(loaded.Clients);
         Assert.Equal(new TrainerClientResponse(client.Id, "Shevchenko Olena", Now), assigned);
         Assert.Equal(TimeSpan.FromHours(3), assigned.AssignedAt.Offset);
-        Assert.Equal(2, _unitOfWork.SaveCount);
+        Assert.Equal(2, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -209,7 +212,7 @@ public class TrainerServiceTests
         var trainer = await _service.HireAsync(Request(), Ct);
 
         await Assert.ThrowsAsync<NotFoundException>(() => _service.AssignClientAsync(trainer.Id, Guid.NewGuid(), Ct));
-        Assert.Equal(1, _unitOfWork.SaveCount);
+        Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -217,6 +220,7 @@ public class TrainerServiceTests
     {
         var client = TestData.Client();
         _clients.Add(client);
+        await SeedAsync();
 
         await Assert.ThrowsAsync<NotFoundException>(() => _service.AssignClientAsync(Guid.NewGuid(), client.Id, Ct));
     }
@@ -227,10 +231,11 @@ public class TrainerServiceTests
         var trainer = await _service.HireAsync(Request(), Ct);
         var client = TestData.Client();
         _clients.Add(client);
+        await SeedAsync();
         await _service.AssignClientAsync(trainer.Id, client.Id, Ct);
 
         await Assert.ThrowsAsync<DomainException>(() => _service.AssignClientAsync(trainer.Id, client.Id, Ct));
-        Assert.Equal(2, _unitOfWork.SaveCount);
+        Assert.Equal(2, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -240,6 +245,7 @@ public class TrainerServiceTests
         await _service.DeactivateAsync(trainer.Id, Ct);
         var client = TestData.Client();
         _clients.Add(client);
+        await SeedAsync();
 
         await Assert.ThrowsAsync<DomainException>(() => _service.AssignClientAsync(trainer.Id, client.Id, Ct));
     }
@@ -250,12 +256,13 @@ public class TrainerServiceTests
         var trainer = await _service.HireAsync(Request(), Ct);
         var client = TestData.Client();
         _clients.Add(client);
+        await SeedAsync();
         await _service.AssignClientAsync(trainer.Id, client.Id, Ct);
 
         await _service.UnassignClientAsync(trainer.Id, client.Id, Ct);
 
         Assert.Empty((await _service.GetAsync(trainer.Id, Ct)).Clients);
-        Assert.Equal(3, _unitOfWork.SaveCount);
+        Assert.Equal(3, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -264,7 +271,7 @@ public class TrainerServiceTests
         var trainer = await _service.HireAsync(Request(), Ct);
 
         await Assert.ThrowsAsync<DomainException>(() => _service.UnassignClientAsync(trainer.Id, Guid.NewGuid(), Ct));
-        Assert.Equal(1, _unitOfWork.SaveCount);
+        Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -275,7 +282,7 @@ public class TrainerServiceTests
         await _service.LinkIdentityAsync(trainer.Id, new LinkIdentityRequest { IdentityUserId = "  auth0|abc " }, Ct);
 
         Assert.Equal("auth0|abc", (await _service.GetAsync(trainer.Id, Ct)).IdentityUserId);
-        Assert.Equal(2, _unitOfWork.SaveCount);
+        Assert.Equal(2, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -286,7 +293,7 @@ public class TrainerServiceTests
 
         await _service.LinkIdentityAsync(trainer.Id, new LinkIdentityRequest { IdentityUserId = "auth0|abc" }, Ct);
 
-        Assert.Equal(3, _unitOfWork.SaveCount);
+        Assert.Equal(3, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -300,7 +307,7 @@ public class TrainerServiceTests
             _service.LinkIdentityAsync(second.Id, new LinkIdentityRequest { IdentityUserId = " auth0|abc" }, Ct));
 
         Assert.Null((await _service.GetAsync(second.Id, Ct)).IdentityUserId);
-        Assert.Equal(3, _unitOfWork.SaveCount);
+        Assert.Equal(3, UnitOfWork.SaveCount);
     }
 
     [Fact]

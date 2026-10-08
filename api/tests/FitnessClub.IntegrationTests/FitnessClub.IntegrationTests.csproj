@@ -12,6 +12,9 @@
     <ProjectReference Include="..\..\src\FitnessClub.Api\FitnessClub.Api.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\FitnessClub.UnitTests\Domain\TestData.cs" Link="Services\TestData.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>
