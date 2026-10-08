@@ -34,7 +34,9 @@ export const routes: RouteObject[] = [
       },
       {
         element: <RequireRole allowed={admins} />,
-        children: [],
+        children: [
+          { path: 'notifications', lazy: async () => ({ Component: (await import('../features/notifications/NotificationsPage')).NotificationsPage }) },
+        ],
       },
       { path: 'forbidden', element: <ForbiddenPage /> },
       { path: '*', element: <NotFoundPage /> },
