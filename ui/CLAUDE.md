@@ -55,7 +55,7 @@ npm run generate       # regenerate src/api/generated from openapi/fitnessclub.j
 - react-hook-form with `zodResolver`, and inputs from `react-hook-form-mantine` (`<TextInput control={control} name="..." />`).
 - Each form schema `.extend()`s the generated zod request schema and only tightens it. Schemas must not change types (no `transform`). Map values to the request with a `toXRequest()` function, for example empty optional text to `null`.
 - Submit with `await mutation.mutateAsync(...).catch(() => undefined)`, and give the button `loading={formState.isSubmitting}`, so a double click sends one request.
-- Date inputs use `valueFormat="YYYY-MM-DD"` and `dateParser={parseIsoDate}`, with no `minDate`/`maxDate`. Validate ranges in zod.
+- Date fields are `<TextInput type="date" />` (the browser's native date control). Its value is always a full real date (`YYYY-MM-DD`) or `''`, so an impossible or half-typed date can never be saved as another date. Don't use Mantine's `DateInput` in forms: when the typed text isn't a date it keeps the previous value. Required dates check `^\d{4}-\d{2}-\d{2}$` with an "Enter a full date…" message, and zod validates ranges. Don't give a date field a meaning for "empty" (an impossible date is also `''`); prefill it instead, as the membership start date is prefilled with today.
 
 ## Styling
 
