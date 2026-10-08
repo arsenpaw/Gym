@@ -15,11 +15,10 @@ export const clientFormSchema = ClientsRegisterBody.extend({
   firstName: requiredText('First name', clientsRegisterBodyFirstNameMax),
   lastName: requiredText('Last name', clientsRegisterBodyLastNameMax),
   middleName: optionalText('Middle name', clientsRegisterBodyMiddleNameMax),
-  dateOfBirth: z.iso
-    .date()
-    .nullable()
-    .refine((value) => Boolean(value), 'Date of birth is required')
-    .refine((value) => value === null || !dayjs(value).isAfter(dayjs(), 'day'), 'Date of birth cannot be in the future'),
+  dateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a full date of birth')
+    .refine((value) => !dayjs(value).isAfter(dayjs(), 'day'), 'Date of birth cannot be in the future'),
   phone: phoneNumber(clientsRegisterBodyPhoneMax),
   email: optionalEmail(clientsRegisterBodyEmailMax),
 });
@@ -30,7 +29,7 @@ export const clientFormDefaults = (client?: ClientDetailsResponse): ClientFormVa
   firstName: client?.firstName ?? '',
   lastName: client?.lastName ?? '',
   middleName: client?.middleName ?? '',
-  dateOfBirth: client?.dateOfBirth ?? null,
+  dateOfBirth: client?.dateOfBirth ?? '',
   phone: client?.phone ?? '',
   email: client?.email ?? '',
 });

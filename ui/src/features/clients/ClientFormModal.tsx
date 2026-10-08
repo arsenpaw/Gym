@@ -3,7 +3,7 @@ import { Button, Group, Modal, SimpleGrid, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { DateInput, TextInput } from 'react-hook-form-mantine';
+import { TextInput } from 'react-hook-form-mantine';
 import {
   getClientsGetQueryKey,
   getClientsListQueryKey,
@@ -11,7 +11,7 @@ import {
   useClientsUpdate,
 } from '../../api/generated/endpoints/clients/clients';
 import type { ClientDetailsResponse } from '../../api/generated/model';
-import { parseIsoDate } from '../../lib/dates';
+import { today } from '../../lib/dates';
 import { clientFormDefaults, clientFormSchema, toClientRequest, type ClientFormValues } from './clientForm';
 
 type Props = {
@@ -57,16 +57,7 @@ const ClientForm = ({ client, onDone, onSaved }: { client?: ClientDetailsRespons
           <TextInput control={control} name="middleName" label="Middle name" />
         </SimpleGrid>
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
-          <DateInput
-            control={control}
-            name="dateOfBirth"
-            label="Date of birth"
-            placeholder="YYYY-MM-DD"
-            valueFormat="YYYY-MM-DD"
-            dateParser={parseIsoDate}
-            defaultLevel="decade"
-            withAsterisk
-          />
+          <TextInput control={control} name="dateOfBirth" type="date" label="Date of birth" max={today()} withAsterisk />
           <TextInput control={control} name="phone" label="Phone" placeholder="+380 67 123 4567" withAsterisk />
         </SimpleGrid>
         <TextInput control={control} name="email" label="Email" description="Expiry reminders go here; without email they go by SMS" />

@@ -3,11 +3,11 @@ import { Button, Group, Modal, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { useForm, useWatch } from 'react-hook-form';
-import { DateInput, SegmentedControl, Select } from 'react-hook-form-mantine';
+import { SegmentedControl, Select, TextInput } from 'react-hook-form-mantine';
 import { useClientsPurchaseMembership } from '../../api/generated/endpoints/clients/clients';
 import { useMembershipPlansList } from '../../api/generated/endpoints/membership-plans/membership-plans';
 import { PaymentMethod } from '../../api/generated/model';
-import { parseIsoDate } from '../../lib/dates';
+import { today } from '../../lib/dates';
 import { formatMoney } from '../../lib/format';
 import { purchaseFormSchema, toPurchaseRequest, type PurchaseFormValues } from './purchaseForm';
 import { refreshClient } from './refreshClient';
@@ -25,7 +25,7 @@ const PurchaseForm = ({ clientId, onDone }: { clientId: string; onDone: () => vo
   const plans = useMembershipPlansList({ includeInactive: false });
   const { control, handleSubmit, formState } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseFormSchema),
-    defaultValues: { planId: null, startsOn: null, paymentMethod: PaymentMethod.Card },
+    defaultValues: { planId: null, startsOn: today(), paymentMethod: PaymentMethod.Card },
   });
   const planId = useWatch({ control, name: 'planId' });
   const chosen = plans.data?.find((plan) => plan.id === planId);
@@ -61,16 +61,7 @@ const PurchaseForm = ({ clientId, onDone }: { clientId: string; onDone: () => vo
             Valid for {chosen.validityDays} days · {chosen.visitLimit ? `${chosen.visitLimit} visits` : 'unlimited visits'}
           </Text>
         )}
-        <DateInput
-          control={control}
-          name="startsOn"
-          label="Starts on"
-          placeholder="Today"
-          description="Leave empty to start today"
-          valueFormat="YYYY-MM-DD"
-          dateParser={parseIsoDate}
-          clearable
-        />
+        <TextInput control={control} name="startsOn" type="date" label="Starts on" min={today()} withAsterisk />
         <SegmentedControl control={control} name="paymentMethod" data={[PaymentMethod.Card, PaymentMethod.Cash]} />
         <Group justify="flex-end">
           <Button variant="default" onClick={onDone}>Cancel</Button>

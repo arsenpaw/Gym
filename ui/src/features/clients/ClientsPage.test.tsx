@@ -57,7 +57,7 @@ describe('ClientsPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Register client' }));
     const dialog = await screen.findByRole('dialog');
     await user.click(within(dialog).getByRole('button', { name: 'Save' }));
-    expect(await within(dialog).findByText('Date of birth is required')).toBeInTheDocument();
+    expect(await within(dialog).findByText('Enter a full date of birth')).toBeInTheDocument();
     expect(within(dialog).getByText('Phone is required')).toBeInTheDocument();
 
     await user.type(within(dialog).getByLabelText(/Last name/), 'Shevchenko');
