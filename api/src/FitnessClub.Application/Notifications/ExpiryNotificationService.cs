@@ -29,7 +29,7 @@ internal sealed class ExpiryNotificationService(
                     continue;
 
                 notifications.Add(Notification.MembershipExpiring(
-                    client, membership, templates.ExpiryReminder(ExpiryReminderEmail.For(client, membership, today)), now));
+                    client, membership, templates.ExpiryReminder(ExpiryReminderEmail.For(client, membership)), now));
                 created++;
             }
         }
@@ -84,8 +84,19 @@ internal sealed class ExpiryNotificationService(
         var notification = await notifications.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException($"Notification '{id}' was not found.");
 
-        notification.Retry();
+        notification.Retry(await CurrentContentAsync(notification, cancellationToken));
         await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<NotificationContent?> CurrentContentAsync(Notification notification, CancellationToken cancellationToken)
+    {
+        if (notification.Type != NotificationType.Promotion)
+            return null;
+
+        var client = await clients.GetByIdAsync(notification.ClientId, cancellationToken)
+            ?? throw new NotFoundException($"Client '{notification.ClientId}' was not found.");
+        var today = DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
+        return templates.Promotion(PromotionEmail.For(client, today));
     }
 
     private bool OutlastsNoticeWindow(Membership membership) =>

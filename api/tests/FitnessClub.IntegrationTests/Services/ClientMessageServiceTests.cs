@@ -175,4 +175,17 @@ public class ClientMessageServiceTests(FitnessClubApiFactory factory) : ServiceT
     {
         await Assert.ThrowsAsync<NotFoundException>(() => Service().ListAsync(Guid.NewGuid(), Ct));
     }
+
+    [Fact]
+    public async Task SendAsync_records_the_outcome_even_when_the_request_is_aborted_during_the_send()
+    {
+        var client = await SeedClientAsync();
+        using var aborted = new CancellationTokenSource();
+        _sender.OnSend = aborted.Cancel;
+
+        var result = await Service().SendAsync(client.Id, Request("Promotion"), aborted.Token);
+
+        Assert.Equal("Sent", result.Status);
+        Assert.Equal(NotificationStatus.Sent, Assert.Single(await AllNotificationsAsync()).Status);
+    }
 }

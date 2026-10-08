@@ -59,8 +59,8 @@ public class ExpiryNotificationServiceTests(FitnessClubApiFactory factory) : Ser
         Assert.Equal(NotificationStatus.Pending, notice.Status);
         Assert.Equal(TestData.Now, notice.CreatedAt);
         Assert.Equal("Your membership expires soon", notice.Subject);
-        Assert.Contains("ends in 4 days, on 9 October 2026", notice.Message);
-        Assert.Contains("Your membership ends in 4 days", notice.HtmlBody);
+        Assert.Contains("ends on 9 October 2026", notice.Message);
+        Assert.Contains("Your membership ends on 9 October 2026", notice.HtmlBody);
         Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
@@ -254,5 +254,38 @@ public class ExpiryNotificationServiceTests(FitnessClubApiFactory factory) : Ser
 
         Assert.Equal(new NotificationRunResponse(1, 1, 0), result);
         Assert.Equal(NotificationStatus.Sent, Assert.Single(await AllNotificationsAsync()).Status);
+    }
+
+    [Fact]
+    public async Task RetryAsync_rewrites_a_failed_promotion_for_the_current_month()
+    {
+        var client = TestData.Client("promo@example.com");
+        Get<IClientRepository>().Add(client);
+        var promotion = Notification.Promotion(client, Get<IEmailTemplates>().Promotion(PromotionEmail.For(client, TestData.Today)), TestData.Now);
+        promotion.MarkFailed("Mailbox unavailable.");
+        Get<INotificationRepository>().Add(promotion);
+        await SeedAsync();
+        _time.Now = new DateTimeOffset(2026, 11, 10, 9, 0, 0, TimeSpan.Zero);
+
+        await Service().RetryAsync(promotion.Id, Ct);
+
+        Assert.Equal(NotificationStatus.Pending, promotion.Status);
+        Assert.Contains("Valid until 30 November 2026", promotion.Message);
+        Assert.Contains("30 November 2026", promotion.HtmlBody);
+        Assert.DoesNotContain("31 October 2026", promotion.HtmlBody);
+    }
+
+    [Fact]
+    public async Task RetryAsync_keeps_the_content_of_an_expiry_notice()
+    {
+        var notice = await PendingNoticeFor("keep@example.com");
+        notice.MarkFailed("Mailbox unavailable.");
+        await SeedAsync();
+        var html = notice.HtmlBody;
+        _time.Now = TestData.Now.AddDays(10);
+
+        await Service().RetryAsync(notice.Id, Ct);
+
+        Assert.Equal(html, notice.HtmlBody);
     }
 }

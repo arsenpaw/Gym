@@ -8,32 +8,20 @@ public class EmailTemplatesTests
     private readonly EmailTemplates _templates = new();
 
     [Fact]
-    public void ExpiryReminder_fills_subject_text_and_html()
+    public void ExpiryReminder_fills_subject_text_and_html_with_the_end_date()
     {
-        var content = _templates.ExpiryReminder(new ExpiryReminderEmail("Olena", "Monthly", new DateOnly(2026, 11, 3), 5));
+        var content = _templates.ExpiryReminder(new ExpiryReminderEmail("Olena", "Monthly", new DateOnly(2026, 11, 3)));
 
         Assert.Equal("Your membership expires soon", content.Subject);
         Assert.Equal(
-            "Dear Olena, your membership 'Monthly' ends in 5 days, on 3 November 2026. Renew at the reception desk to keep training without a break.",
+            "Dear Olena, your membership 'Monthly' ends on 3 November 2026. Renew at the reception desk to keep training without a break.",
             content.Text);
-        Assert.Contains("Your membership ends in 5 days", content.Html);
+        Assert.Contains("Your membership ends on 3 November 2026", content.Html);
         Assert.Contains("Monthly", content.Html);
-        Assert.Contains("3 November 2026", content.Html);
         Assert.Contains("Dear Olena", content.Html);
         Assert.Contains("#0ca678", content.Html);
         Assert.DoesNotContain("{{", content.Html);
-    }
-
-    [Theory]
-    [InlineData(0, "today")]
-    [InlineData(1, "tomorrow")]
-    [InlineData(2, "in 2 days")]
-    public void ExpiryReminder_says_when_in_words(int daysLeft, string when)
-    {
-        var content = _templates.ExpiryReminder(new ExpiryReminderEmail("Olena", "Monthly", new DateOnly(2026, 11, 3), daysLeft));
-
-        Assert.Contains($"Your membership ends {when}", content.Html);
-        Assert.Contains($"ends {when}, on 3 November 2026", content.Text);
+        Assert.DoesNotContain(" days", content.Html);
     }
 
     [Fact]
@@ -54,7 +42,7 @@ public class EmailTemplatesTests
     [Fact]
     public void Values_are_html_encoded_and_never_substituted_twice()
     {
-        var content = _templates.ExpiryReminder(new ExpiryReminderEmail("<b>Olena</b>", "{{EndsOn}} & Co", new DateOnly(2026, 11, 3), 5));
+        var content = _templates.ExpiryReminder(new ExpiryReminderEmail("<b>Olena</b>", "{{EndsOn}} & Co", new DateOnly(2026, 11, 3)));
 
         Assert.Contains("&lt;b&gt;Olena&lt;/b&gt;", content.Html);
         Assert.DoesNotContain("<b>Olena</b>", content.Html);

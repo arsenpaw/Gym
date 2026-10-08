@@ -166,4 +166,18 @@ public class NotificationTests
         Assert.Equal(NotificationStatus.Pending, notification.Status);
         Assert.Null(notification.FailureReason);
     }
+
+    [Fact]
+    public void Retry_with_new_content_replaces_subject_text_and_html()
+    {
+        var notification = Notification.Promotion(TestData.Client("olena@example.com"), TestData.Content(), TestData.Now);
+        notification.MarkFailed("Mailbox unavailable.");
+
+        notification.Retry(NotificationContent.Create("New subject", "New text", "<p>New</p>"));
+
+        Assert.Equal(NotificationStatus.Pending, notification.Status);
+        Assert.Equal("New subject", notification.Subject);
+        Assert.Equal("New text", notification.Message);
+        Assert.Equal("<p>New</p>", notification.HtmlBody);
+    }
 }

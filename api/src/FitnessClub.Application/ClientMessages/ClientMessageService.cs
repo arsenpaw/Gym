@@ -15,8 +15,6 @@ internal sealed class ClientMessageService(
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IClientMessageService
 {
-    public const int PromotionDiscountPercent = 10;
-
     public async Task<ClientMessagePreviewResponse> PreviewAsync(Guid clientId, ClientMessageRequest request, CancellationToken cancellationToken)
     {
         var template = Parse(request);
@@ -32,15 +30,15 @@ internal sealed class ClientMessageService(
 
         try
         {
-            await sender.SendAsync(notification, cancellationToken);
+            await sender.SendAsync(notification, CancellationToken.None);
             notification.MarkSent(timeProvider.GetLocalNow());
         }
-        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        catch (Exception exception)
         {
             notification.MarkFailed(string.IsNullOrWhiteSpace(exception.Message) ? exception.GetType().Name : exception.Message);
         }
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await unitOfWork.SaveChangesAsync(CancellationToken.None);
         return NotificationResponse.FromEntity(notification);
     }
 
@@ -60,11 +58,9 @@ internal sealed class ClientMessageService(
                 var membership = client.ActiveMembershipOn(today)
                     ?? throw new DomainException("The client has no active membership to remind about.");
                 return Notification.ExpiryReminder(
-                    client, membership, templates.ExpiryReminder(ExpiryReminderEmail.For(client, membership, today)), now);
+                    client, membership, templates.ExpiryReminder(ExpiryReminderEmail.For(client, membership)), now);
             case MessageTemplate.Promotion:
-                var validUntil = new DateOnly(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month));
-                return Notification.Promotion(
-                    client, templates.Promotion(new PromotionEmail(client.Name.FirstName, PromotionDiscountPercent, validUntil)), now);
+                return Notification.Promotion(client, templates.Promotion(PromotionEmail.For(client, today)), now);
             default:
                 throw new DomainException($"Unknown message template '{template}'.");
         }

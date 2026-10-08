@@ -70,13 +70,19 @@ public sealed class Notification : AggregateRoot
         FailureReason = trimmed.Length > FailureReasonMaxLength ? trimmed[..FailureReasonMaxLength] : trimmed;
     }
 
-    public void Retry()
+    public void Retry(NotificationContent? content = null)
     {
         if (Status != NotificationStatus.Failed)
             throw new DomainException("Only a failed notification can be retried.");
 
         Status = NotificationStatus.Pending;
         FailureReason = null;
+        if (content is null)
+            return;
+
+        Subject = content.Subject;
+        Message = content.Text;
+        HtmlBody = content.Html;
     }
 
     private static Notification Email(Client client, Guid? membershipId, NotificationType type, NotificationContent content, DateTimeOffset now)

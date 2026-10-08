@@ -15,22 +15,15 @@ internal sealed partial class EmailTemplates : IEmailTemplates
     public NotificationContent ExpiryReminder(ExpiryReminderEmail email)
     {
         var endsOn = Format(email.EndsOn);
-        var when = email.DaysLeft switch
-        {
-            <= 0 => "today",
-            1 => "tomorrow",
-            _ => $"in {email.DaysLeft} days",
-        };
 
         return NotificationContent.Create(
             "Your membership expires soon",
-            $"Dear {email.FirstName}, your membership '{email.PlanName}' ends {when}, on {endsOn}. Renew at the reception desk to keep training without a break.",
+            $"Dear {email.FirstName}, your membership '{email.PlanName}' ends on {endsOn}. Renew at the reception desk to keep training without a break.",
             Fill(ExpiryReminderHtml, new Dictionary<string, string>
             {
                 ["FirstName"] = email.FirstName,
                 ["PlanName"] = email.PlanName,
                 ["EndsOn"] = endsOn,
-                ["When"] = when,
             }));
     }
 

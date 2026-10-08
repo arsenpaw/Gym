@@ -13,11 +13,14 @@ internal sealed class FakeNotificationSender : INotificationSender
 
     public HashSet<string> FailingRecipients { get; } = [];
 
+    public Action? OnSend { get; set; }
+
     public Task SendAsync(Notification notification, CancellationToken cancellationToken)
     {
         if (FailingRecipients.Contains(notification.Recipient))
             throw new InvalidOperationException(FailureMessage);
 
+        OnSend?.Invoke();
         _sent.Add(notification);
         return Task.CompletedTask;
     }

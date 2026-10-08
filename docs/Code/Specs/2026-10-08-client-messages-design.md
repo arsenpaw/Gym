@@ -19,7 +19,7 @@ Staff open a client's page, choose a template, see the real email rendered with 
 - **Templates in our repo.** The two HTML files are embedded resources in Infrastructure. The API fills them and sends finished HTML plus a plain-text part. SendGrid Dynamic Templates are not used, so the in-app preview is exactly the email that goes out, and the templates are versioned and tested.
 - **Fixed text.** There is no template editor and no staff input. The promotion is always 10% off, valid until the last day of the current month.
 - **Email only.** A client without an email address can't be messaged.
-- **Kept as history.** Each send is a `Notification`. It shows on the Notifications page, can be retried there, and is listed on the client page.
+- **Kept as history.** Each send is a `Notification`. It shows on the Notifications page, can be retried there, and is listed on the client page. Retrying a promotion re-renders it for the current month, so it never offers a discount that has already expired.
 - **Roles.** Admin and Receptionist, the same as the rest of the client page.
 
 ## Style of the templates
@@ -33,7 +33,7 @@ The templates match the staff portal:
 
 The two templates:
 
-- **Expiry reminder** (`ExpiryReminder.html`): the headline "Your membership ends in N days", a box with the plan name and end date, and "Renew at the reception desk to keep training without a break."
+- **Expiry reminder** (`ExpiryReminder.html`): the headline "Your membership ends on 3 November 2026", a box with the plan name and end date, and "Renew at the reception desk to keep training without a break." The wording uses the end date, never "in N days", so a notice retried days later is still true.
 - **Promotion** (`Promotion.html`): a large teal "10% OFF" badge, "on any membership", the valid-until date, and "Show this email at the reception desk."
 
 Every value inserted into a template is HTML-encoded.
@@ -61,8 +61,8 @@ Every value inserted into a template is HTML-encoded.
 
 - `INotificationSender.SendAsync(Notification, CancellationToken)`. The sender reads the channel, recipient, subject, text and HTML from the notification.
 - `IEmailTemplates` builds the subject, text and HTML of each template:
-  - `ExpiryReminder(ExpiryReminderEmail(FirstName, PlanName, EndsOn, DaysLeft))`
-  - `Promotion(PromotionEmail(FirstName, DiscountPercent, ValidUntil))`
+  - `ExpiryReminder(ExpiryReminderEmail(FirstName, PlanName, EndsOn))`
+  - `Promotion(PromotionEmail(FirstName, DiscountPercent, ValidUntil))`, built with `PromotionEmail.For(client, today)` (10%, last day of the month)
   - The daily job uses the reminder template.
 - `IClientMessageService` (`Application/ClientMessages/`):
   - `PreviewAsync(clientId, template)`:
@@ -71,7 +71,8 @@ Every value inserted into a template is HTML-encoded.
     - Builds the notification without adding it and returns `ClientMessagePreviewResponse(template, recipient, subject, html)`.
   - `SendAsync(clientId, template)`:
     - Builds the notification the same way, adds it, saves, then sends.
-    - Success → `MarkSent`. An exception that isn't a cancellation → `MarkFailed(reason)`. Then it saves again.
+    - Success → `MarkSent`. Any exception → `MarkFailed(reason)`. Then it saves again.
+    - Once the message is saved, the send and the second save ignore the request's cancellation. If staff close the tab mid-send, the message still ends up `Sent` or `Failed`, never stuck as `Pending` for the daily job to send again.
     - Returns the `NotificationResponse`.
   - `ListAsync(clientId)`: every notification of the client, newest first.
 - `NotificationResponse` gains `Subject`.
