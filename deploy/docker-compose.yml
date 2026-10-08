@@ -2,13 +2,17 @@ services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
     platform: linux/amd64
+    restart: unless-stopped
     environment:
       ACCEPT_EULA: "Y"
+      MSSQL_PID: ${MSSQL_PID:-Developer}
       MSSQL_SA_PASSWORD: ${DB_SA_PASSWORD:?Set DB_SA_PASSWORD in deploy/.env}
     ports:
-      - "127.0.0.1:1433:1433"
+      - "127.0.0.1:${DB_PORT:-1433}:1433"
     volumes:
       - db-data:/var/opt/mssql
+    networks:
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
       interval: 10s
@@ -19,12 +23,22 @@ services:
   api:
     build:
       context: ../api
-    ports:
-      - "8080:8080"
+    restart: unless-stopped
     environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      TZ: ${CLUB_TIME_ZONE:-UTC}
+      Logging__LogLevel__Default: ${API_LOG_LEVEL:-Information}
+      ConnectionStrings__FitnessClub: Server=db,1433;Database=${DB_NAME:-FitnessClub};User Id=sa;Password=${DB_SA_PASSWORD:?Set DB_SA_PASSWORD in deploy/.env};TrustServerCertificate=True
       Auth0__Domain: ${AUTH0_DOMAIN:?Set AUTH0_DOMAIN in deploy/.env}
       Auth0__Audience: ${AUTH0_AUDIENCE:?Set AUTH0_AUDIENCE in deploy/.env}
-      ConnectionStrings__FitnessClub: Server=db;Database=FitnessClub;User Id=sa;Password=${DB_SA_PASSWORD};TrustServerCertificate=True
+      Auth0__RolesClaim: ${AUTH0_ROLES_CLAIM:-https://fitnessclub/roles}
+      Notifications__ExpiryNoticeDays: ${EXPIRY_NOTICE_DAYS:-7}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    networks:
+      - backend
+      - frontend
     depends_on:
       db:
         condition: service_healthy
@@ -33,7 +47,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
-      start_period: 10s
+      start_period: 30s
 
   ui:
     build:
@@ -42,11 +56,24 @@ services:
         VITE_AUTH0_DOMAIN: ${AUTH0_DOMAIN:?Set AUTH0_DOMAIN in deploy/.env}
         VITE_AUTH0_CLIENT_ID: ${AUTH0_UI_CLIENT_ID:?Set AUTH0_UI_CLIENT_ID in deploy/.env}
         VITE_AUTH0_AUDIENCE: ${AUTH0_AUDIENCE:?Set AUTH0_AUDIENCE in deploy/.env}
+    restart: unless-stopped
     ports:
-      - "8081:8080"
+      - "${UI_PORT:-8081}:8080"
+    networks:
+      - frontend
     depends_on:
       api:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+networks:
+  backend:
+  frontend:
 
 volumes:
   db-data:
