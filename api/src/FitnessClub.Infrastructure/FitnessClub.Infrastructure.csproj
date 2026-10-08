@@ -12,6 +12,9 @@
     <ProjectReference Include="..\FitnessClub.Application\FitnessClub.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Notifications\Templates\*.html" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="FitnessClub.ArchitectureTests" />
     <InternalsVisibleTo Include="FitnessClub.IntegrationTests" />
   </ItemGroup>
