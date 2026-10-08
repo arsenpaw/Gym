@@ -2436,6 +2436,7 @@
           "type",
           "channel",
           "recipient",
+          "subject",
           "message",
           "status",
           "createdAt",
@@ -2466,6 +2467,9 @@
             "type": "string"
           },
           "recipient": {
+            "type": "string"
+          },
+          "subject": {
             "type": "string"
           },
           "message": {

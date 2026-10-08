@@ -27,6 +27,7 @@ public class NotificationsEndpointsTests(FitnessClubApiFactory factory) : IClass
         Assert.Equal("MembershipExpiring", notification.Type);
         Assert.Equal("Email", notification.Channel);
         Assert.Equal(seeded.Recipient, notification.Recipient);
+        Assert.Equal(seeded.Subject, notification.Subject);
         Assert.Equal(seeded.Message, notification.Message);
         Assert.Equal("Pending", notification.Status);
         Assert.Equal(seeded.CreatedAt, notification.CreatedAt);

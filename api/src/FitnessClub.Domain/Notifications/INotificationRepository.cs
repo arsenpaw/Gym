@@ -8,5 +8,7 @@ public interface INotificationRepository : IRepository<Notification>
 
     Task<IReadOnlyList<Notification>> ListPendingAsync(CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<Notification>> ListForClientAsync(Guid clientId, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<Notification>> ListAsync(NotificationStatus? status, CancellationToken cancellationToken);
 }

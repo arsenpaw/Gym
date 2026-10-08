@@ -4,6 +4,7 @@ using FitnessClub.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FitnessClub.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(FitnessClubDbContext))]
-    partial class FitnessClubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261008152032_AddNotificationSubjectAndHtml")]
+    partial class AddNotificationSubjectAndHtml
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

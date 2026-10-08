@@ -5,6 +5,7 @@ using FitnessClub.Domain.Notifications;
 using FitnessClub.Domain.Payments;
 using FitnessClub.Domain.SharedKernel;
 using FitnessClub.IntegrationTests.Infrastructure;
+using FitnessClub.UnitTests.Domain;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessClub.IntegrationTests.Notifications;
@@ -32,7 +33,7 @@ internal static class NotificationSeeder
     {
         var now = new DateTimeOffset(2026, 10, 5, 9, 0, 0, TimeSpan.Zero);
         var (client, membership, plan) = NewClient(now);
-        var notification = Notification.MembershipExpiring(client, membership, now);
+        var notification = Notification.MembershipExpiring(client, membership, TestData.Content(), now);
         if (failureReason is not null)
             notification.MarkFailed(failureReason);
 
@@ -44,20 +45,31 @@ internal static class NotificationSeeder
         return notification;
     }
 
+    public static async Task<Client> ClientWithMembershipAsync(this FitnessClubApiFactory factory, bool withEmail = true)
+    {
+        var (client, _, plan) = NewClient(TimeProvider.System.GetLocalNow(), withEmail);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<IMembershipPlanRepository>().Add(plan);
+        scope.ServiceProvider.GetRequiredService<IClientRepository>().Add(client);
+        await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync(Ct);
+        return client;
+    }
+
     public static async Task<IReadOnlyList<Notification>> NotificationsAsync(this FitnessClubApiFactory factory)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<INotificationRepository>().ListAsync(null, Ct);
     }
 
-    private static (Client Client, Membership Membership, MembershipPlan Plan) NewClient(DateTimeOffset now)
+    private static (Client Client, Membership Membership, MembershipPlan Plan) NewClient(DateTimeOffset now, bool withEmail = true)
     {
         var plan = MembershipPlan.Create($"Plan {Guid.NewGuid():N}", Money.Of(800m), ValidityDays, null);
         var client = Client.Register(
             PersonName.Create("Olena", "Shevchenko", null),
             new DateOnly(1995, 3, 14),
             PhoneNumber.Create($"+380{Random.Shared.NextInt64(100_000_000, 999_999_999)}"),
-            EmailAddress.Create($"{Guid.NewGuid():N}@example.com"),
+            withEmail ? EmailAddress.Create($"{Guid.NewGuid():N}@example.com") : null,
             now);
         var payment = client.PurchaseMembership(plan, DateOnly.FromDateTime(now.DateTime), PaymentMethod.Cash, now);
         return (client, client.Memberships.Single(m => m.Id == payment.MembershipId), plan);

@@ -1,5 +1,6 @@
 using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.MembershipPlans;
+using FitnessClub.Domain.Notifications;
 using FitnessClub.Domain.Payments;
 using FitnessClub.Domain.Rooms;
 using FitnessClub.Domain.SharedKernel;
@@ -35,6 +36,9 @@ internal static class TestData
         var payment = client.PurchaseMembership(plan, startsOn ?? Today, PaymentMethod.Cash, Now);
         return client.Memberships.Single(m => m.Id == payment.MembershipId);
     }
+
+    public static NotificationContent Content(string? html = "<p>Hello</p>") =>
+        NotificationContent.Create("Your membership expires soon", "Dear Olena, your membership ends soon.", html);
 
     public static Room Room(int capacity = 20) => FitnessClub.Domain.Rooms.Room.Create($"Room {Guid.NewGuid():N}", capacity);
 

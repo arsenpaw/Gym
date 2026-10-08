@@ -1,3 +1,4 @@
+using FitnessClub.Application.Abstractions;
 using FitnessClub.Application.Common;
 using FitnessClub.Application.Notifications;
 using FitnessClub.Domain.Clients;
@@ -17,7 +18,7 @@ public class ExpiryNotificationServiceTests(FitnessClubApiFactory factory) : Ser
     private readonly FakeTimeProvider _time = new(TestData.Now);
 
     private ExpiryNotificationService Service(int expiryNoticeDays = 7) =>
-        new(Get<IClientRepository>(), Get<INotificationRepository>(), _sender, UnitOfWork, _time,
+        new(Get<IClientRepository>(), Get<INotificationRepository>(), _sender, Get<IEmailTemplates>(), UnitOfWork, _time,
             new ExpiryNotificationOptions { ExpiryNoticeDays = expiryNoticeDays });
 
     private Task<IReadOnlyList<Notification>> AllNotificationsAsync() => Get<INotificationRepository>().ListAsync(null, Ct);
@@ -57,7 +58,9 @@ public class ExpiryNotificationServiceTests(FitnessClubApiFactory factory) : Ser
         Assert.Equal("olena@example.com", notice.Recipient);
         Assert.Equal(NotificationStatus.Pending, notice.Status);
         Assert.Equal(TestData.Now, notice.CreatedAt);
-        Assert.Contains("2026-10-09", notice.Message);
+        Assert.Equal("Your membership expires soon", notice.Subject);
+        Assert.Contains("ends in 4 days, on 9 October 2026", notice.Message);
+        Assert.Contains("Your membership ends in 4 days", notice.HtmlBody);
         Assert.Equal(1, UnitOfWork.SaveCount);
     }
 

@@ -9,6 +9,7 @@ internal sealed class ExpiryNotificationService(
     IClientRepository clients,
     INotificationRepository notifications,
     INotificationSender sender,
+    IEmailTemplates templates,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
     ExpiryNotificationOptions options) : IExpiryNotificationService
@@ -27,7 +28,8 @@ internal sealed class ExpiryNotificationService(
                 if (await notifications.ExistsForMembershipAsync(membership.Id, NotificationType.MembershipExpiring, cancellationToken))
                     continue;
 
-                notifications.Add(Notification.MembershipExpiring(client, membership, now));
+                notifications.Add(Notification.MembershipExpiring(
+                    client, membership, templates.ExpiryReminder(ExpiryReminderEmail.For(client, membership, today)), now));
                 created++;
             }
         }

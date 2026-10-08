@@ -1,4 +1,3 @@
-using System.Globalization;
 using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.Common;
 
@@ -15,7 +14,9 @@ public sealed class Notification : AggregateRoot
     public NotificationType Type { get; private set; }
     public NotificationChannel Channel { get; private set; }
     public string Recipient { get; private set; } = null!;
+    public string Subject { get; private set; } = null!;
     public string Message { get; private set; } = null!;
+    public string? HtmlBody { get; private set; }
     public NotificationStatus Status { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? SentAt { get; private set; }
@@ -25,7 +26,7 @@ public sealed class Notification : AggregateRoot
     {
     }
 
-    public static Notification MembershipExpiring(Client client, Membership membership, DateTimeOffset now)
+    public static Notification MembershipExpiring(Client client, Membership membership, NotificationContent content, DateTimeOffset now)
     {
         if (!client.Owns(membership))
             throw new DomainException("The membership does not belong to the client.");
@@ -33,19 +34,22 @@ public sealed class Notification : AggregateRoot
         if (!client.NeedsExpiryNotice(membership, now.ToDateOnly()))
             throw new DomainException("The membership does not need an expiry notice.");
 
-        var endsOn = membership.EndsOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        return new Notification
-        {
-            ClientId = client.Id,
-            MembershipId = membership.Id,
-            Type = NotificationType.MembershipExpiring,
-            Channel = NotificationChannel.Email,
-            Recipient = client.Email!.Value,
-            Message = $"Dear {client.Name.FirstName}, your membership '{membership.PlanName}' expires on {endsOn}.",
-            Status = NotificationStatus.Pending,
-            CreatedAt = now,
-        };
+        return Email(client, membership.Id, NotificationType.MembershipExpiring, content, now);
     }
+
+    public static Notification ExpiryReminder(Client client, Membership membership, NotificationContent content, DateTimeOffset now)
+    {
+        if (!client.Owns(membership))
+            throw new DomainException("The membership does not belong to the client.");
+
+        if (!membership.IsActiveOn(now.ToDateOnly()))
+            throw new DomainException("The client has no active membership to remind about.");
+
+        return Email(client, null, NotificationType.ExpiryReminder, content, now);
+    }
+
+    public static Notification Promotion(Client client, NotificationContent content, DateTimeOffset now) =>
+        Email(client, null, NotificationType.Promotion, content, now);
 
     public void MarkSent(DateTimeOffset now)
     {
@@ -73,6 +77,24 @@ public sealed class Notification : AggregateRoot
 
         Status = NotificationStatus.Pending;
         FailureReason = null;
+    }
+
+    private static Notification Email(Client client, Guid? membershipId, NotificationType type, NotificationContent content, DateTimeOffset now)
+    {
+        var email = client.Email ?? throw new DomainException("The client has no email address.");
+        return new Notification
+        {
+            ClientId = client.Id,
+            MembershipId = membershipId,
+            Type = type,
+            Channel = NotificationChannel.Email,
+            Recipient = email.Value,
+            Subject = content.Subject,
+            Message = content.Text,
+            HtmlBody = content.Html,
+            Status = NotificationStatus.Pending,
+            CreatedAt = now,
+        };
     }
 
     private void EnsurePending()

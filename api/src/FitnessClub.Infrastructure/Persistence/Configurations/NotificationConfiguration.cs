@@ -17,6 +17,9 @@ internal sealed class NotificationConfiguration : IEntityTypeConfiguration<Notif
         builder.Property(n => n.Status).HasConversion<string>().HasMaxLength(10);
         builder.Property(n => n.Recipient).HasMaxLength(Notification.RecipientMaxLength).IsRequired();
         builder.Property(n => n.Message).HasMaxLength(Notification.MessageMaxLength).IsRequired();
+        builder.Property(n => n.Subject).HasMaxLength(NotificationContent.SubjectMaxLength).IsRequired();
+        builder.Property(n => n.HtmlBody);
+        builder.HasIndex(n => new { n.ClientId, n.CreatedAt });
         builder.Property(n => n.FailureReason).HasMaxLength(Notification.FailureReasonMaxLength);
         builder.HasOne<Client>().WithMany().HasForeignKey(n => n.ClientId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(n => new { n.MembershipId, n.Type }).IsUnique().HasFilter("[MembershipId] IS NOT NULL");
