@@ -7,6 +7,8 @@ This file covers only deployment. Every service runs as a Docker container, and 
 - `deploy/docker-compose.yml`: the stack. Its build contexts point to the services (`../api`).
 - Each Dockerfile lives next to its service: `api/Dockerfile`, `ui/Dockerfile`.
 - `deploy/.env`: settings for compose. Ignored by git. Copy it from `deploy/.env.example`.
+- `deploy/docker-compose.server.yml`: the same stack for a server, where every variable is required (see "Server").
+- `deploy/.env.server`: settings for the server stack. Ignored by git. Copy it from `deploy/.env.server.example`.
 
 ## Services
 
@@ -56,8 +58,29 @@ docker compose -f deploy/docker-compose.yml down
 
 - To run only the database for a locally run API (`dotnet run`): `docker compose -f deploy/docker-compose.yml up -d db`.
 
+## Server (`docker-compose.server.yml`)
+
+It runs the same services, networks, health checks and volume as `docker-compose.yml`, and builds the images on the server from the cloned repo. The differences:
+
+- **No defaults.** Every setting uses `${VAR:?}`, so compose stops and names the first missing or empty variable. `deploy/.env.server.example` lists them all with comments.
+- **Env file:** it reads `deploy/.env.server`, passed with `--env-file`, so it never picks up the local `deploy/.env`.
+- **Project name:** `fitnessclub`. Its containers and its `db-data` volume are separate from the local stack's (project `deploy`).
+- **Bind addresses:** each port mapping is `<SERVICE>_BIND_ADDRESS:<SERVICE>_PORT`. The example publishes only the UI (`0.0.0.0:80`) and keeps the API and the database on `127.0.0.1`.
+- **More settings:** `API_ALLOWED_HOSTS` (`AllowedHosts`), `API_LOG_LEVEL_ASPNETCORE` (`Logging__LogLevel__Microsoft.AspNetCore`), and `CLUB_TIME_ZONE` also sets `TZ` on `db`.
+- **Edition:** the example sets `MSSQL_PID=Express`, because the Developer edition isn't licensed for production.
+- **Logs:** each container keeps at most 5 × 10 MB json-file logs.
+
+Run from the repo root on the server:
+
+```sh
+cp deploy/.env.server.example deploy/.env.server   # first time only, then fill in every value
+docker compose -f deploy/docker-compose.server.yml --env-file deploy/.env.server up --build -d
+docker compose -f deploy/docker-compose.server.yml --env-file deploy/.env.server ps
+docker compose -f deploy/docker-compose.server.yml --env-file deploy/.env.server logs -f api
+```
+
 ## Notes
 
 - By default the API container runs in Production, so the OpenAPI document, Scalar page and Hangfire dashboard aren't available there.
 - "Today" and the seeded dates follow `CLUB_TIME_ZONE`. The seed runs once, when the database is first created, so changing the zone later doesn't move existing data.
-- Still to decide: environments and TLS in front of the UI.
+- Still to decide: TLS in front of the UI, and a registry so the server pulls images instead of building them.

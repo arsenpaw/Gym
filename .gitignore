@@ -12,6 +12,7 @@ dist/
 
 # Secrets
 deploy/.env
+deploy/.env.server
 
 # Obsidian per-device state
 docs/.obsidian/workspace*.json

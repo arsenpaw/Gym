@@ -1,0 +1,97 @@
+# Server stack. Every setting comes from the env file and none has a default:
+#   docker compose -f deploy/docker-compose.server.yml --env-file deploy/.env.server up --build -d
+# Compose stops and names the first missing variable. deploy/.env.server.example lists them all.
+
+name: fitnessclub
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: ${MSSQL_PID:?Set MSSQL_PID in deploy/.env.server}
+      MSSQL_SA_PASSWORD: ${DB_SA_PASSWORD:?Set DB_SA_PASSWORD in deploy/.env.server}
+      TZ: ${CLUB_TIME_ZONE:?Set CLUB_TIME_ZONE in deploy/.env.server}
+    ports:
+      - "${DB_BIND_ADDRESS:?Set DB_BIND_ADDRESS in deploy/.env.server}:${DB_PORT:?Set DB_PORT in deploy/.env.server}:1433"
+    volumes:
+      - db-data:/var/opt/mssql
+    networks:
+      - backend
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api:
+    build:
+      context: ../api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:?Set ASPNETCORE_ENVIRONMENT in deploy/.env.server}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      TZ: ${CLUB_TIME_ZONE:?Set CLUB_TIME_ZONE in deploy/.env.server}
+      AllowedHosts: ${API_ALLOWED_HOSTS:?Set API_ALLOWED_HOSTS in deploy/.env.server}
+      Logging__LogLevel__Default: ${API_LOG_LEVEL:?Set API_LOG_LEVEL in deploy/.env.server}
+      Logging__LogLevel__Microsoft.AspNetCore: ${API_LOG_LEVEL_ASPNETCORE:?Set API_LOG_LEVEL_ASPNETCORE in deploy/.env.server}
+      ConnectionStrings__FitnessClub: Server=db,1433;Database=${DB_NAME:?Set DB_NAME in deploy/.env.server};User Id=sa;Password=${DB_SA_PASSWORD:?Set DB_SA_PASSWORD in deploy/.env.server};TrustServerCertificate=True
+      Auth0__Domain: ${AUTH0_DOMAIN:?Set AUTH0_DOMAIN in deploy/.env.server}
+      Auth0__Audience: ${AUTH0_AUDIENCE:?Set AUTH0_AUDIENCE in deploy/.env.server}
+      Auth0__RolesClaim: ${AUTH0_ROLES_CLAIM:?Set AUTH0_ROLES_CLAIM in deploy/.env.server}
+      Notifications__ExpiryNoticeDays: ${EXPIRY_NOTICE_DAYS:?Set EXPIRY_NOTICE_DAYS in deploy/.env.server}
+    ports:
+      - "${API_BIND_ADDRESS:?Set API_BIND_ADDRESS in deploy/.env.server}:${API_PORT:?Set API_PORT in deploy/.env.server}:8080"
+    networks:
+      - backend
+      - frontend
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+  ui:
+    build:
+      context: ../ui
+      args:
+        VITE_AUTH0_DOMAIN: ${AUTH0_DOMAIN:?Set AUTH0_DOMAIN in deploy/.env.server}
+        VITE_AUTH0_CLIENT_ID: ${AUTH0_UI_CLIENT_ID:?Set AUTH0_UI_CLIENT_ID in deploy/.env.server}
+        VITE_AUTH0_AUDIENCE: ${AUTH0_AUDIENCE:?Set AUTH0_AUDIENCE in deploy/.env.server}
+    restart: unless-stopped
+    ports:
+      - "${UI_BIND_ADDRESS:?Set UI_BIND_ADDRESS in deploy/.env.server}:${UI_PORT:?Set UI_PORT in deploy/.env.server}:8080"
+    networks:
+      - frontend
+    logging: *logging
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+networks:
+  backend:
+  frontend:
+
+volumes:
+  db-data:
