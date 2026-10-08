@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
       globals: true,
       setupFiles: ['./src/test/setup.ts'],
       testTimeout: 20000,
-      css: false,
+      css: { include: [/calendarTheme\.css/] },
     },
   };
 });

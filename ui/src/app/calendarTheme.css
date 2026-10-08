@@ -1,0 +1,77 @@
+.rbc-toolbar button {
+  color: var(--mantine-color-text);
+  background-color: var(--mantine-color-default);
+  border-color: var(--mantine-color-default-border);
+}
+
+.rbc-toolbar button:hover,
+.rbc-toolbar button:focus {
+  color: var(--mantine-color-text);
+  background-color: var(--mantine-color-default-hover);
+  border-color: var(--mantine-color-default-border);
+}
+
+.rbc-toolbar button:active,
+.rbc-toolbar button.rbc-active,
+.rbc-toolbar button:active:hover,
+.rbc-toolbar button:active:focus,
+.rbc-toolbar button.rbc-active:hover,
+.rbc-toolbar button.rbc-active:focus {
+  color: var(--mantine-primary-color-light-color);
+  background-color: var(--mantine-primary-color-light);
+  border-color: var(--mantine-color-default-border);
+  box-shadow: none;
+}
+
+.rbc-today {
+  background-color: var(--mantine-primary-color-light);
+}
+
+.rbc-off-range {
+  color: var(--mantine-color-dimmed);
+}
+
+.rbc-off-range-bg {
+  background: var(--mantine-color-default-hover);
+}
+
+.rbc-overlay {
+  color: var(--mantine-color-text);
+  background-color: var(--mantine-color-body);
+  border-color: var(--mantine-color-default-border);
+}
+
+.rbc-overlay-header {
+  border-color: var(--mantine-color-default-border);
+}
+
+.rbc-show-more {
+  color: var(--mantine-primary-color-filled);
+  background-color: transparent;
+}
+
+.rbc-time-view-resources .rbc-time-gutter,
+.rbc-time-view-resources .rbc-time-header-gutter {
+  background-color: var(--mantine-color-body);
+}
+
+.rbc-header,
+.rbc-header + .rbc-header,
+.rbc-month-view,
+.rbc-month-row + .rbc-month-row,
+.rbc-day-bg + .rbc-day-bg,
+.rbc-time-view,
+.rbc-time-view .rbc-allday-cell + .rbc-allday-cell,
+.rbc-time-header.rbc-overflowing,
+.rbc-time-header > .rbc-row:first-child,
+.rbc-time-header-content,
+.rbc-time-content,
+.rbc-time-content > * + * > *,
+.rbc-timeslot-group,
+.rbc-day-slot .rbc-time-slot,
+.rbc-agenda-view table.rbc-agenda-table,
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td + td,
+.rbc-agenda-view table.rbc-agenda-table tbody > tr + tr,
+.rbc-agenda-view table.rbc-agenda-table thead > tr > th {
+  border-color: var(--mantine-color-default-border);
+}

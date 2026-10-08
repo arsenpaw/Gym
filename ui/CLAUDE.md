@@ -59,7 +59,7 @@ npm run generate       # regenerate src/api/generated from openapi/fitnessclub.j
 
 ## Styling
 
-- Mantine theme in `src/app/theme.ts`: teal primary, `md` radius, Inter font, light, dark and auto color scheme. Use Mantine props and components. There are no CSS modules or global CSS besides the library styles imported in `main.tsx`.
+- Mantine theme in `src/app/theme.ts`: teal primary, `md` radius, Inter font, light, dark and auto color scheme. Use Mantine props and components. There are no CSS modules. The only global CSS besides the library styles imported in `main.tsx` is `src/app/calendarTheme.css`, which maps react-big-calendar's hardcoded light colors to Mantine CSS variables so the calendar works in dark mode. Vitest processes only that CSS file (`css.include` in `vite.config.ts`), so its test can read it.
 
 ## Tests
 
