@@ -4,6 +4,7 @@ import { IconPlayerPlay, IconRefresh } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DataTable } from 'mantine-datatable';
 import { useState } from 'react';
+import { QueryErrorAlert } from '../../api/QueryErrorAlert';
 import { useClientsList } from '../../api/generated/endpoints/clients/clients';
 import {
   getNotificationsListQueryKey,
@@ -61,45 +62,49 @@ export const NotificationsPage = () => {
         onChange={(value) => setStatus(value as StatusFilter)}
         aria-label="Status"
       />
-      <DataTable
-        withTableBorder
-        borderRadius="md"
-        striped
-        minHeight={200}
-        fetching={list.isFetching}
-        records={list.data ?? []}
-        noRecordsText="No notifications"
-        columns={[
-          { accessor: 'createdAt', title: 'Created', render: (n) => formatDateTime(n.createdAt) },
-          { accessor: 'clientId', title: 'Client', render: (n) => clientNames.get(n.clientId) ?? '—' },
-          { accessor: 'channel', title: 'Channel', render: (n) => <Badge variant="outline">{n.channel}</Badge> },
-          { accessor: 'recipient', title: 'Recipient' },
-          { accessor: 'message', title: 'Message', ellipsis: true, width: 320 },
-          {
-            accessor: 'status',
-            title: 'Status',
-            render: (n) => (
-              <Tooltip label={n.failureReason} disabled={!n.failureReason}>
-                <Badge variant="light" color={statusColors[n.status] ?? 'gray'}>{n.status}</Badge>
-              </Tooltip>
-            ),
-          },
-          { accessor: 'sentAt', title: 'Sent', render: (n) => (n.sentAt ? formatDateTime(n.sentAt) : '—') },
-          {
-            accessor: 'actions',
-            title: '',
-            textAlign: 'right',
-            render: (n) =>
-              n.status === 'Failed' ? (
-                <Tooltip label="Retry">
-                  <ActionIcon variant="subtle" aria-label={`Retry notification to ${n.recipient}`} onClick={() => retry.mutate({ id: n.id })}>
-                    <IconRefresh size={16} />
-                  </ActionIcon>
+      {list.isError ? (
+        <QueryErrorAlert title="Could not load notifications" error={list.error} />
+      ) : (
+        <DataTable
+          withTableBorder
+          borderRadius="md"
+          striped
+          minHeight={200}
+          fetching={list.isFetching}
+          records={list.data ?? []}
+          noRecordsText="No notifications"
+          columns={[
+            { accessor: 'createdAt', title: 'Created', render: (n) => formatDateTime(n.createdAt) },
+            { accessor: 'clientId', title: 'Client', render: (n) => clientNames.get(n.clientId) ?? '—' },
+            { accessor: 'channel', title: 'Channel', render: (n) => <Badge variant="outline">{n.channel}</Badge> },
+            { accessor: 'recipient', title: 'Recipient' },
+            { accessor: 'message', title: 'Message', ellipsis: true, width: 320 },
+            {
+              accessor: 'status',
+              title: 'Status',
+              render: (n) => (
+                <Tooltip label={n.failureReason} disabled={!n.failureReason}>
+                  <Badge variant="light" color={statusColors[n.status] ?? 'gray'}>{n.status}</Badge>
                 </Tooltip>
-              ) : null,
-          },
-        ]}
-      />
+              ),
+            },
+            { accessor: 'sentAt', title: 'Sent', render: (n) => (n.sentAt ? formatDateTime(n.sentAt) : '—') },
+            {
+              accessor: 'actions',
+              title: '',
+              textAlign: 'right',
+              render: (n) =>
+                n.status === 'Failed' ? (
+                  <Tooltip label="Retry">
+                    <ActionIcon variant="subtle" aria-label={`Retry notification to ${n.recipient}`} onClick={() => retry.mutate({ id: n.id })}>
+                      <IconRefresh size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                ) : null,
+            },
+          ]}
+        />
+      )}
     </Stack>
   );
 };

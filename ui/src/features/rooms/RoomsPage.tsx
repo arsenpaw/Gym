@@ -5,6 +5,7 @@ import { IconPencil, IconPlayerPause, IconPlayerPlay, IconPlus } from '@tabler/i
 import { useQueryClient } from '@tanstack/react-query';
 import { DataTable } from 'mantine-datatable';
 import { useState } from 'react';
+import { QueryErrorAlert } from '../../api/QueryErrorAlert';
 import {
   getRoomsListQueryKey,
   useRoomsActivate,
@@ -50,41 +51,45 @@ export const RoomsPage = () => {
           {canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => openForm()}>New room</Button>}
         </Group>
       </Group>
-      <DataTable
-        withTableBorder
-        borderRadius="md"
-        striped
-        highlightOnHover
-        minHeight={200}
-        fetching={rooms.isFetching}
-        records={rooms.data ?? []}
-        noRecordsText="No rooms yet"
-        columns={[
-          { accessor: 'name', title: 'Name' },
-          { accessor: 'capacity', title: 'Capacity', textAlign: 'right' },
-          {
-            accessor: 'isActive',
-            title: 'Status',
-            render: (room) => <Badge color={room.isActive ? 'teal' : 'gray'} variant="light">{room.isActive ? 'Active' : 'Inactive'}</Badge>,
-          },
-          {
-            accessor: 'actions',
-            title: '',
-            textAlign: 'right',
-            hidden: !canEdit,
-            render: (room) => (
-              <Group gap={4} justify="flex-end" wrap="nowrap">
-                <Tooltip label="Edit"><ActionIcon variant="subtle" aria-label={`Edit ${room.name}`} onClick={() => openForm(room)}><IconPencil size={16} /></ActionIcon></Tooltip>
-                {room.isActive ? (
-                  <Tooltip label="Deactivate"><ActionIcon variant="subtle" color="red" aria-label={`Deactivate ${room.name}`} onClick={() => confirmDeactivate(room)}><IconPlayerPause size={16} /></ActionIcon></Tooltip>
-                ) : (
-                  <Tooltip label="Activate"><ActionIcon variant="subtle" aria-label={`Activate ${room.name}`} onClick={() => activate.mutate({ id: room.id })}><IconPlayerPlay size={16} /></ActionIcon></Tooltip>
-                )}
-              </Group>
-            ),
-          },
-        ]}
-      />
+      {rooms.isError ? (
+        <QueryErrorAlert title="Could not load rooms" error={rooms.error} />
+      ) : (
+        <DataTable
+          withTableBorder
+          borderRadius="md"
+          striped
+          highlightOnHover
+          minHeight={200}
+          fetching={rooms.isFetching}
+          records={rooms.data ?? []}
+          noRecordsText="No rooms yet"
+          columns={[
+            { accessor: 'name', title: 'Name' },
+            { accessor: 'capacity', title: 'Capacity', textAlign: 'right' },
+            {
+              accessor: 'isActive',
+              title: 'Status',
+              render: (room) => <Badge color={room.isActive ? 'teal' : 'gray'} variant="light">{room.isActive ? 'Active' : 'Inactive'}</Badge>,
+            },
+            {
+              accessor: 'actions',
+              title: '',
+              textAlign: 'right',
+              hidden: !canEdit,
+              render: (room) => (
+                <Group gap={4} justify="flex-end" wrap="nowrap">
+                  <Tooltip label="Edit"><ActionIcon variant="subtle" aria-label={`Edit ${room.name}`} onClick={() => openForm(room)}><IconPencil size={16} /></ActionIcon></Tooltip>
+                  {room.isActive ? (
+                    <Tooltip label="Deactivate"><ActionIcon variant="subtle" color="red" aria-label={`Deactivate ${room.name}`} onClick={() => confirmDeactivate(room)}><IconPlayerPause size={16} /></ActionIcon></Tooltip>
+                  ) : (
+                    <Tooltip label="Activate"><ActionIcon variant="subtle" aria-label={`Activate ${room.name}`} onClick={() => activate.mutate({ id: room.id })}><IconPlayerPlay size={16} /></ActionIcon></Tooltip>
+                  )}
+                </Group>
+              ),
+            },
+          ]}
+        />
+      )}
       <RoomFormModal opened={formOpened} onClose={form.close} room={editing} />
     </Stack>
   );

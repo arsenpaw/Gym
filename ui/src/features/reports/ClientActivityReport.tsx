@@ -2,6 +2,7 @@ import { Group, SimpleGrid, Stack } from '@mantine/core';
 import { DatePickerInput, type DatesRangeValue } from '@mantine/dates';
 import { DataTable, type DataTableSortStatus } from 'mantine-datatable';
 import { useMemo, useState } from 'react';
+import { QueryErrorAlert } from '../../api/QueryErrorAlert';
 import { useReportsClientActivity } from '../../api/generated/endpoints/reports/reports';
 import type { ClientActivityItem } from '../../api/generated/model';
 import dayjs from '../../lib/dayjs';
@@ -28,36 +29,42 @@ export const ClientActivityReport = () => {
       <Group>
         <DatePickerInput type="range" label="Period" value={range} onChange={setRange} valueFormat="D MMM YYYY" w={320} allowSingleDateInRange />
       </Group>
-      <SimpleGrid cols={{ base: 2, md: 4 }}>
-        <StatCard label="Clients" value={clients.length} />
-        <StatCard label="Visits" value={clients.reduce((sum, c) => sum + c.visitCount, 0)} />
-        <StatCard label="With membership" value={clients.filter((c) => c.activeMembership).length} />
-        <StatCard label="No visits" value={clients.filter((c) => c.visitCount === 0).length} />
-      </SimpleGrid>
-      <DataTable
-        withTableBorder
-        borderRadius="md"
-        striped
-        minHeight={200}
-        idAccessor="clientId"
-        fetching={report.isFetching}
-        records={records}
-        sortStatus={sort}
-        onSortStatusChange={setSort}
-        noRecordsText="No clients"
-        columns={[
-          { accessor: 'fullName', title: 'Client', sortable: true },
-          { accessor: 'age', title: 'Age', textAlign: 'right', sortable: true },
-          { accessor: 'phone', title: 'Phone' },
-          {
-            accessor: 'activeMembership',
-            title: 'Membership',
-            render: (c) => (c.activeMembership ? `${c.activeMembership.planName}, until ${formatDate(c.activeMembership.endsOn)}` : '—'),
-          },
-          { accessor: 'visitCount', title: 'Visits', textAlign: 'right', sortable: true },
-          { accessor: 'lastVisitAt', title: 'Last visit', sortable: true, render: (c) => (c.lastVisitAt ? formatDateTime(c.lastVisitAt) : 'Never') },
-        ]}
-      />
+      {report.isError ? (
+        <QueryErrorAlert title="Could not load the report" error={report.error} />
+      ) : (
+        <>
+          <SimpleGrid cols={{ base: 2, md: 4 }}>
+            <StatCard label="Clients" value={clients.length} />
+            <StatCard label="Visits" value={clients.reduce((sum, c) => sum + c.visitCount, 0)} />
+            <StatCard label="With membership" value={clients.filter((c) => c.activeMembership).length} />
+            <StatCard label="No visits" value={clients.filter((c) => c.visitCount === 0).length} />
+          </SimpleGrid>
+          <DataTable
+            withTableBorder
+            borderRadius="md"
+            striped
+            minHeight={200}
+            idAccessor="clientId"
+            fetching={report.isFetching}
+            records={records}
+            sortStatus={sort}
+            onSortStatusChange={setSort}
+            noRecordsText="No clients"
+            columns={[
+              { accessor: 'fullName', title: 'Client', sortable: true },
+              { accessor: 'age', title: 'Age', textAlign: 'right', sortable: true },
+              { accessor: 'phone', title: 'Phone' },
+              {
+                accessor: 'activeMembership',
+                title: 'Membership',
+                render: (c) => (c.activeMembership ? `${c.activeMembership.planName}, until ${formatDate(c.activeMembership.endsOn)}` : '—'),
+              },
+              { accessor: 'visitCount', title: 'Visits', textAlign: 'right', sortable: true },
+              { accessor: 'lastVisitAt', title: 'Last visit', sortable: true, render: (c) => (c.lastVisitAt ? formatDateTime(c.lastVisitAt) : 'Never') },
+            ]}
+          />
+        </>
+      )}
     </Stack>
   );
 };

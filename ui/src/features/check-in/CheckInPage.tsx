@@ -4,6 +4,7 @@ import { IconCheck, IconLogin2, IconSearch } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router';
+import { QueryErrorAlert } from '../../api/QueryErrorAlert';
 import { useClientsCheckIn, useClientsList } from '../../api/generated/endpoints/clients/clients';
 import type { VisitResponse } from '../../api/generated/model';
 import { formatTime } from '../../lib/format';
@@ -45,6 +46,7 @@ export const CheckInPage = () => {
           setLastVisit(null);
         }}
       />
+      {clients.isError && <QueryErrorAlert title="Could not load clients" error={clients.error} />}
       {client && (
         <Card withBorder radius="md" padding="lg">
           <Group justify="space-between" align="flex-start">

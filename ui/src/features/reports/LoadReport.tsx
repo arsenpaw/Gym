@@ -3,6 +3,7 @@ import { Accordion, Group, Paper, SimpleGrid, Stack, Text, Title } from '@mantin
 import { DatePickerInput, type DatesRangeValue } from '@mantine/dates';
 import { DataTable } from 'mantine-datatable';
 import { useMemo, useState } from 'react';
+import { QueryErrorAlert } from '../../api/QueryErrorAlert';
 import { useReportsLoad } from '../../api/generated/endpoints/reports/reports';
 import dayjs from '../../lib/dayjs';
 import { DATE_FORMAT } from '../../lib/dates';
@@ -34,56 +35,62 @@ export const LoadReport = () => {
       <Group>
         <DatePickerInput type="range" label="Period" value={range} onChange={setRange} valueFormat="D MMM YYYY" w={320} error={error} allowSingleDateInRange />
       </Group>
-      <SimpleGrid cols={{ base: 1, lg: 2 }}>
-        <Paper withBorder p="md" radius="md">
-          <Title order={5} mb="sm">Room utilization, %</Title>
-          <BarChart h={260} data={roomData} dataKey="day" series={roomSeries} withLegend />
-        </Paper>
-        <Paper withBorder p="md" radius="md">
-          <Title order={5} mb="sm">Trainer hours</Title>
-          <BarChart h={260} data={trainerData} dataKey="day" series={trainerSeries} withLegend />
-        </Paper>
-      </SimpleGrid>
-      <Accordion variant="separated" multiple>
-        {days.map((day) => (
-          <Accordion.Item key={day.date} value={day.date}>
-            <Accordion.Control>
-              <Group justify="space-between" pr="md">
-                <Text fw={500}>{dayjs(day.date).format('dddd, D MMMM')}</Text>
-                <Text size="sm" c="dimmed">{day.rooms.reduce((sum, r) => sum + r.sessions, 0)} sessions</Text>
-              </Group>
-            </Accordion.Control>
-            <Accordion.Panel>
-              <SimpleGrid cols={{ base: 1, md: 2 }}>
-                <DataTable
-                  idAccessor="trainerId"
-                  records={day.trainers}
-                  noRecordsText="No sessions"
-                  minHeight={80}
-                  columns={[
-                    { accessor: 'trainerName', title: 'Trainer' },
-                    { accessor: 'sessions', title: 'Sessions', textAlign: 'right' },
-                    { accessor: 'bookedHours', title: 'Hours', textAlign: 'right' },
-                    { accessor: 'clientsBooked', title: 'Clients', textAlign: 'right' },
-                  ]}
-                />
-                <DataTable
-                  idAccessor="roomId"
-                  records={day.rooms}
-                  noRecordsText="No sessions"
-                  minHeight={80}
-                  columns={[
-                    { accessor: 'roomName', title: 'Room' },
-                    { accessor: 'occupiedHours', title: 'Hours', textAlign: 'right' },
-                    { accessor: 'bookedPlaces', title: 'Booked', textAlign: 'right', render: (r) => `${r.bookedPlaces} / ${r.totalPlaces}` },
-                    { accessor: 'utilizationPercent', title: 'Load', textAlign: 'right', render: (r) => `${Math.round(r.utilizationPercent)}%` },
-                  ]}
-                />
-              </SimpleGrid>
-            </Accordion.Panel>
-          </Accordion.Item>
-        ))}
-      </Accordion>
+      {report.isError ? (
+        <QueryErrorAlert title="Could not load the report" error={report.error} />
+      ) : (
+        <>
+          <SimpleGrid cols={{ base: 1, lg: 2 }}>
+            <Paper withBorder p="md" radius="md">
+              <Title order={5} mb="sm">Room utilization, %</Title>
+              <BarChart h={260} data={roomData} dataKey="day" series={roomSeries} withLegend />
+            </Paper>
+            <Paper withBorder p="md" radius="md">
+              <Title order={5} mb="sm">Trainer hours</Title>
+              <BarChart h={260} data={trainerData} dataKey="day" series={trainerSeries} withLegend />
+            </Paper>
+          </SimpleGrid>
+          <Accordion variant="separated" multiple>
+            {days.map((day) => (
+              <Accordion.Item key={day.date} value={day.date}>
+                <Accordion.Control>
+                  <Group justify="space-between" pr="md">
+                    <Text fw={500}>{dayjs(day.date).format('dddd, D MMMM')}</Text>
+                    <Text size="sm" c="dimmed">{day.rooms.reduce((sum, r) => sum + r.sessions, 0)} sessions</Text>
+                  </Group>
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <SimpleGrid cols={{ base: 1, md: 2 }}>
+                    <DataTable
+                      idAccessor="trainerId"
+                      records={day.trainers}
+                      noRecordsText="No sessions"
+                      minHeight={80}
+                      columns={[
+                        { accessor: 'trainerName', title: 'Trainer' },
+                        { accessor: 'sessions', title: 'Sessions', textAlign: 'right' },
+                        { accessor: 'bookedHours', title: 'Hours', textAlign: 'right' },
+                        { accessor: 'clientsBooked', title: 'Clients', textAlign: 'right' },
+                      ]}
+                    />
+                    <DataTable
+                      idAccessor="roomId"
+                      records={day.rooms}
+                      noRecordsText="No sessions"
+                      minHeight={80}
+                      columns={[
+                        { accessor: 'roomName', title: 'Room' },
+                        { accessor: 'occupiedHours', title: 'Hours', textAlign: 'right' },
+                        { accessor: 'bookedPlaces', title: 'Booked', textAlign: 'right', render: (r) => `${r.bookedPlaces} / ${r.totalPlaces}` },
+                        { accessor: 'utilizationPercent', title: 'Load', textAlign: 'right', render: (r) => `${Math.round(r.utilizationPercent)}%` },
+                      ]}
+                    />
+                  </SimpleGrid>
+                </Accordion.Panel>
+              </Accordion.Item>
+            ))}
+          </Accordion>
+        </>
+      )}
     </Stack>
   );
 };

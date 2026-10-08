@@ -4,6 +4,7 @@ import { notifications } from '@mantine/notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { useForm, useWatch } from 'react-hook-form';
 import { SegmentedControl, Select, TextInput } from 'react-hook-form-mantine';
+import { QueryErrorAlert } from '../../api/QueryErrorAlert';
 import { useClientsPurchaseMembership } from '../../api/generated/endpoints/clients/clients';
 import { useMembershipPlansList } from '../../api/generated/endpoints/membership-plans/membership-plans';
 import { PaymentMethod } from '../../api/generated/model';
@@ -56,6 +57,7 @@ const PurchaseForm = ({ clientId, onDone }: { clientId: string; onDone: () => vo
           withAsterisk
           searchable
         />
+        {plans.isError && <QueryErrorAlert title="Could not load plans" error={plans.error} />}
         {chosen && (
           <Text size="sm" c="dimmed">
             Valid for {chosen.validityDays} days · {chosen.visitLimit ? `${chosen.visitLimit} visits` : 'unlimited visits'}
