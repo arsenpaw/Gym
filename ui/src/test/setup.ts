@@ -9,6 +9,7 @@ vi.mock('@auth0/auth0-react', () => ({
   useAuth0: () => ({
     isAuthenticated: testAuth.isAuthenticated,
     isLoading: false,
+    error: testAuth.error,
     user: { name: 'Test User', email: 'test@example.com' },
     getAccessTokenSilently: testAuth.getAccessTokenSilently,
     loginWithRedirect: testAuth.loginWithRedirect,

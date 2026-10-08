@@ -16,7 +16,7 @@ export const AccessTokenBridge = ({ children }: { children: ReactNode }) => {
       try {
         return await getAccessTokenSilently();
       } catch (error) {
-        if (needsLogin(error)) await loginWithRedirect({ appState: { returnTo: window.location.pathname } });
+        if (needsLogin(error)) await loginWithRedirect({ appState: { returnTo: `${window.location.pathname}${window.location.search}` } });
         throw error;
       }
     });

@@ -37,10 +37,13 @@ describe('AccessTokenBridge', () => {
   it('sends the user to Auth0 login when the session can no longer be renewed', async () => {
     signInAs('Admin');
     testAuth.tokenError = Object.assign(new Error('Login required'), { error: 'login_required' });
+    window.history.replaceState({}, '', '/reports?tab=revenue');
 
     render(<AccessTokenBridge><Ping /></AccessTokenBridge>);
 
     expect(await screen.findByText('failed')).toBeInTheDocument();
     await waitFor(() => expect(testAuth.loginWithRedirect).toHaveBeenCalledTimes(1));
+    expect(testAuth.loginWithRedirect).toHaveBeenCalledWith({ appState: { returnTo: '/reports?tab=revenue' } });
+    window.history.replaceState({}, '', '/');
   });
 });

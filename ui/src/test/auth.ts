@@ -10,6 +10,7 @@ export const testAuth = {
   roles: [] as Role[],
   isAuthenticated: true,
   tokenError: undefined as unknown,
+  error: undefined as Error | undefined,
   getAccessTokenSilently: vi.fn(async () => {
     if (testAuth.tokenError) throw testAuth.tokenError;
     return fakeAccessToken(testAuth.roles);
@@ -27,4 +28,5 @@ export const resetTestAuth = () => {
   testAuth.roles = [];
   testAuth.isAuthenticated = true;
   testAuth.tokenError = undefined;
+  testAuth.error = undefined;
 };
