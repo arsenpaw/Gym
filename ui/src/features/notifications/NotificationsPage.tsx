@@ -13,11 +13,10 @@ import {
   useNotificationsRun,
 } from '../../api/generated/endpoints/notifications/notifications';
 import { formatDateTime } from '../../lib/format';
+import { notificationStatusColors, notificationTypeLabels } from './notificationLabels';
 
 const statusFilters = ['All', 'Pending', 'Sent', 'Failed'] as const;
 type StatusFilter = (typeof statusFilters)[number];
-
-const statusColors: Record<string, string> = { Pending: 'yellow', Sent: 'teal', Failed: 'red' };
 
 export const NotificationsPage = () => {
   const queryClient = useQueryClient();
@@ -51,10 +50,10 @@ export const NotificationsPage = () => {
   return (
     <Stack>
       <Group justify="space-between">
-        <Title order={2}>Expiry notifications</Title>
+        <Title order={2}>Notifications</Title>
         <Button leftSection={<IconPlayerPlay size={16} />} loading={run.isPending} onClick={() => run.mutate()}>Run now</Button>
       </Group>
-      <Text c="dimmed" size="sm">Clients are reminded automatically every morning before their membership ends.</Text>
+      <Text c="dimmed" size="sm">Expiry notices go out automatically every morning. Reminders and promotions are sent from a client's page.</Text>
       <SegmentedControl
         w="fit-content"
         data={[...statusFilters]}
@@ -78,13 +77,14 @@ export const NotificationsPage = () => {
             { accessor: 'clientId', title: 'Client', render: (n) => clientNames.get(n.clientId) ?? '—' },
             { accessor: 'channel', title: 'Channel', render: (n) => <Badge variant="outline">{n.channel}</Badge> },
             { accessor: 'recipient', title: 'Recipient' },
-            { accessor: 'message', title: 'Message', ellipsis: true, width: 320 },
+            { accessor: 'type', title: 'Type', render: (n) => notificationTypeLabels[n.type] ?? n.type },
+            { accessor: 'subject', title: 'Subject', ellipsis: true, width: 280 },
             {
               accessor: 'status',
               title: 'Status',
               render: (n) => (
                 <Tooltip label={n.failureReason} disabled={!n.failureReason}>
-                  <Badge variant="light" color={statusColors[n.status] ?? 'gray'}>{n.status}</Badge>
+                  <Badge variant="light" color={notificationStatusColors[n.status] ?? 'gray'}>{n.status}</Badge>
                 </Tooltip>
               ),
             },

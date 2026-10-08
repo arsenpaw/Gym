@@ -17,6 +17,7 @@ import { problemMessage } from '../../api/problem';
 import { QueryErrorAlert } from '../../api/QueryErrorAlert';
 import { formatDate, formatDateTime, formatMoney } from '../../lib/format';
 import { ClientFormModal } from './ClientFormModal';
+import { ClientMessagesCard } from './ClientMessagesCard';
 import { MembershipBadge } from './MembershipBadge';
 import { membershipRowStatus, type MembershipRowStatus } from './membershipStatus';
 import { PurchaseMembershipModal } from './PurchaseMembershipModal';
@@ -154,6 +155,7 @@ export const ClientDetailsPage = () => {
           />
         )}
       </Card>
+      <ClientMessagesCard clientId={data.id} />
       <ClientFormModal opened={editOpened} onClose={edit.close} client={data} />
       <PurchaseMembershipModal opened={sellOpened} onClose={sell.close} clientId={data.id} />
     </Stack>

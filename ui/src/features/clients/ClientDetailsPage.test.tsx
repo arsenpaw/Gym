@@ -8,6 +8,7 @@ import {
   getClientsPurchaseMembershipMockHandler,
   getClientsUpdateMockHandler,
 } from '../../api/generated/endpoints/clients/clients.msw';
+import { getClientMessagesListMockHandler, getClientMessagesPreviewMockHandler } from '../../api/generated/endpoints/client-messages/client-messages.msw';
 import { getMembershipPlansListMockHandler } from '../../api/generated/endpoints/membership-plans/membership-plans.msw';
 import type { PurchaseMembershipRequest } from '../../api/generated/model';
 import { today } from '../../lib/dates';
@@ -23,7 +24,13 @@ const visit = { id: '99999999-9999-4999-8999-999999999999', clientId: ids.client
 const renderDetails = () => renderRoute([{ path: '/clients/:clientId', element: <ClientDetailsPage /> }], `/clients/${ids.client}`);
 
 describe('ClientDetailsPage', () => {
-  beforeEach(() => signInAs('Receptionist'));
+  beforeEach(() => {
+    signInAs('Receptionist');
+    server.use(
+      getClientMessagesPreviewMockHandler({ template: 'ExpiryReminder', recipient: 'olena@example.com', subject: 'Your membership expires soon', html: '<p>Hi</p>' }),
+      getClientMessagesListMockHandler([]),
+    );
+  });
 
   it('shows the profile, membership history and visits', async () => {
     server.use(getClientsGetMockHandler(clientDetails()), getClientsListVisitsMockHandler([visit]));

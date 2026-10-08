@@ -20,6 +20,7 @@ const failed: NotificationResponse = {
   type: 'MembershipExpiring',
   channel: 'Email',
   recipient: 'olena@example.com',
+  subject: 'Your membership expires soon',
   message: 'Your membership ends in 7 days.',
   status: 'Failed',
   createdAt: dayjs().format(),
