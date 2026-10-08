@@ -1,97 +1,149 @@
-# Server stack. Every setting comes from the env file and none has a default:
-#   docker compose -f deploy/docker-compose.server.yml --env-file deploy/.env.server up --build -d
-# Compose stops and names the first missing variable. deploy/.env.server.example lists them all.
-
-name: fitnessclub
-
-x-logging: &logging
-  driver: json-file
-  options:
-    max-size: "10m"
-    max-file: "5"
+name: fitnessclub-deploy
 
 services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
     platform: linux/amd64
     restart: unless-stopped
+
+    networks:
+      - internal
+
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_PID: ${MSSQL_PID:?Set MSSQL_PID in deploy/.env.server}
-      MSSQL_SA_PASSWORD: ${DB_SA_PASSWORD:?Set DB_SA_PASSWORD in deploy/.env.server}
-      TZ: ${CLUB_TIME_ZONE:?Set CLUB_TIME_ZONE in deploy/.env.server}
+      MSSQL_PID: ${MSSQL_PID:?set it in .env - Express is free, Developer is not licensed for production}
+      MSSQL_SA_PASSWORD: ${DB_SA_PASSWORD:?set it in .env - the database holds every client, membership and payment}
+      TZ: ${CLUB_TIME_ZONE:?set it in .env - the club-local time zone, e.g. Europe/Kyiv}
+
+    expose:
+      - "1433"
+
     ports:
-      - "${DB_BIND_ADDRESS:?Set DB_BIND_ADDRESS in deploy/.env.server}:${DB_PORT:?Set DB_PORT in deploy/.env.server}:1433"
+      - "${GYM_DB_BIND:?set it in .env - keep it 127.0.0.1 and reach the database over an SSH tunnel}:${GYM_DB_PORT:?set it in .env - the host port for the SSH tunnel}:1433"
+
     volumes:
       - db-data:/var/opt/mssql
-    networks:
-      - backend
-    logging: *logging
+
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1",
+        ]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 12
       start_period: 30s
+
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   api:
     build:
       context: ../api
+      dockerfile: Dockerfile
+    image: fitnessclub-api:latest
     restart: unless-stopped
-    environment:
-      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:?Set ASPNETCORE_ENVIRONMENT in deploy/.env.server}
-      ASPNETCORE_HTTP_PORTS: "8080"
-      TZ: ${CLUB_TIME_ZONE:?Set CLUB_TIME_ZONE in deploy/.env.server}
-      AllowedHosts: ${API_ALLOWED_HOSTS:?Set API_ALLOWED_HOSTS in deploy/.env.server}
-      Logging__LogLevel__Default: ${API_LOG_LEVEL:?Set API_LOG_LEVEL in deploy/.env.server}
-      Logging__LogLevel__Microsoft.AspNetCore: ${API_LOG_LEVEL_ASPNETCORE:?Set API_LOG_LEVEL_ASPNETCORE in deploy/.env.server}
-      ConnectionStrings__FitnessClub: Server=db,1433;Database=${DB_NAME:?Set DB_NAME in deploy/.env.server};User Id=sa;Password=${DB_SA_PASSWORD:?Set DB_SA_PASSWORD in deploy/.env.server};TrustServerCertificate=True
-      Auth0__Domain: ${AUTH0_DOMAIN:?Set AUTH0_DOMAIN in deploy/.env.server}
-      Auth0__Audience: ${AUTH0_AUDIENCE:?Set AUTH0_AUDIENCE in deploy/.env.server}
-      Auth0__RolesClaim: ${AUTH0_ROLES_CLAIM:?Set AUTH0_ROLES_CLAIM in deploy/.env.server}
-      Notifications__ExpiryNoticeDays: ${EXPIRY_NOTICE_DAYS:?Set EXPIRY_NOTICE_DAYS in deploy/.env.server}
-    ports:
-      - "${API_BIND_ADDRESS:?Set API_BIND_ADDRESS in deploy/.env.server}:${API_PORT:?Set API_PORT in deploy/.env.server}:8080"
+
     networks:
-      - backend
-      - frontend
-    logging: *logging
+      internal:
+        aliases:
+          - fitnessclub-api
+      proxy:
+
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${GYM_PROXY_NETWORK:?set it in .env - the external network traefik routes through, e.g. dokploy-network}
+      traefik.http.routers.fitnessclub-api.rule: "Host(`${GYM_API_HOST:?set it in .env - the hostname the proxy routes to the api}`)"
+      traefik.http.routers.fitnessclub-api.entrypoints: ${GYM_TRAEFIK_ENTRYPOINT:?set it in .env - the traefik entrypoint, e.g. web}
+      traefik.http.routers.fitnessclub-api.service: fitnessclub-api
+      traefik.http.services.fitnessclub-api.loadbalancer.server.port: "8080"
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:?set it in .env - Production hides OpenAPI, Scalar and the Hangfire dashboard}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      TZ: ${CLUB_TIME_ZONE:?set it in .env - the club-local time zone, e.g. Europe/Kyiv}
+      AllowedHosts: ${GYM_UI_HOST:?set it in .env - the hostname the proxy routes to the ui};${GYM_API_HOST:?set it in .env - the hostname the proxy routes to the api};localhost
+      Logging__LogLevel__Default: ${API_LOG_LEVEL:?set it in .env - e.g. Information}
+      Logging__LogLevel__Microsoft.AspNetCore: ${API_LOG_LEVEL_ASPNETCORE:?set it in .env - e.g. Warning}
+      ConnectionStrings__FitnessClub: Server=db,1433;Database=${DB_NAME:?set it in .env - the database the api creates and migrates};User Id=sa;Password=${DB_SA_PASSWORD:?set it in .env - the database holds every client, membership and payment};TrustServerCertificate=True
+      Auth0__Domain: ${AUTH0_DOMAIN:?set it in .env - the auth0 tenant domain}
+      Auth0__Audience: ${AUTH0_AUDIENCE:?set it in .env - the auth0 api identifier}
+      Auth0__RolesClaim: ${AUTH0_ROLES_CLAIM:?set it in .env - the token claim that carries the roles}
+      Notifications__ExpiryNoticeDays: ${EXPIRY_NOTICE_DAYS:?set it in .env - days before expiry to notify, 1-60}
+
+    expose:
+      - "8080"
+
     depends_on:
       db:
         condition: service_healthy
+
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
       interval: 10s
-      timeout: 3s
-      retries: 5
+      timeout: 5s
+      retries: 12
       start_period: 30s
+
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   ui:
     build:
       context: ../ui
+      dockerfile: Dockerfile
       args:
-        VITE_AUTH0_DOMAIN: ${AUTH0_DOMAIN:?Set AUTH0_DOMAIN in deploy/.env.server}
-        VITE_AUTH0_CLIENT_ID: ${AUTH0_UI_CLIENT_ID:?Set AUTH0_UI_CLIENT_ID in deploy/.env.server}
-        VITE_AUTH0_AUDIENCE: ${AUTH0_AUDIENCE:?Set AUTH0_AUDIENCE in deploy/.env.server}
+        VITE_AUTH0_DOMAIN: ${AUTH0_DOMAIN:?set it in .env - the auth0 tenant domain}
+        VITE_AUTH0_CLIENT_ID: ${AUTH0_UI_CLIENT_ID:?set it in .env - the auth0 spa client id}
+        VITE_AUTH0_AUDIENCE: ${AUTH0_AUDIENCE:?set it in .env - the auth0 api identifier}
+    image: fitnessclub-ui:latest
     restart: unless-stopped
-    ports:
-      - "${UI_BIND_ADDRESS:?Set UI_BIND_ADDRESS in deploy/.env.server}:${UI_PORT:?Set UI_PORT in deploy/.env.server}:8080"
+
     networks:
-      - frontend
-    logging: *logging
+      - internal
+      - proxy
+
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${GYM_PROXY_NETWORK:?set it in .env - the external network traefik routes through, e.g. dokploy-network}
+      traefik.http.routers.fitnessclub-ui.rule: "Host(`${GYM_UI_HOST:?set it in .env - the hostname the proxy routes to the ui}`)"
+      traefik.http.routers.fitnessclub-ui.entrypoints: ${GYM_TRAEFIK_ENTRYPOINT:?set it in .env - the traefik entrypoint, e.g. web}
+      traefik.http.routers.fitnessclub-ui.service: fitnessclub-ui
+      traefik.http.services.fitnessclub-ui.loadbalancer.server.port: "8080"
+
+    expose:
+      - "8080"
+
     depends_on:
       api:
         condition: service_healthy
+
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
       interval: 10s
-      timeout: 3s
-      retries: 5
+      timeout: 5s
+      retries: 12
       start_period: 5s
 
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "5"
+
 networks:
-  backend:
-  frontend:
+  internal:
+    driver: bridge
+  proxy:
+    name: ${GYM_PROXY_NETWORK:?set it in .env - the external network traefik routes through, e.g. dokploy-network}
+    external: true
 
 volumes:
   db-data:

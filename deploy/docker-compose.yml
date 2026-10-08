@@ -37,8 +37,10 @@ services:
     ports:
       - "${API_PORT:-8080}:8080"
     networks:
-      - backend
-      - frontend
+      backend:
+      frontend:
+        aliases:
+          - fitnessclub-api
     depends_on:
       db:
         condition: service_healthy

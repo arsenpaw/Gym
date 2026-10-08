@@ -7,7 +7,7 @@ This file covers only deployment. Every service runs as a Docker container, and 
 - `deploy/docker-compose.yml`: the stack. Its build contexts point to the services (`../api`).
 - Each Dockerfile lives next to its service: `api/Dockerfile`, `ui/Dockerfile`.
 - `deploy/.env`: settings for compose. Ignored by git. Copy it from `deploy/.env.example`.
-- `deploy/docker-compose.server.yml`: the same stack for a server, where every variable is required (see "Server").
+- `deploy/docker-compose.server.yml`: the stack for a server behind Traefik (Dokploy), where every variable is required (see "Server").
 - `deploy/.env.server`: settings for the server stack. Ignored by git. Copy it from `deploy/.env.server.example`.
 
 ## Services
@@ -22,7 +22,7 @@ This file covers only deployment. Every service runs as a Docker container, and 
 - **Networks:** `ui` is only on `frontend`, so it can reach `api` but not `db`. `db` is only on `backend`.
 - `db`: data lives in the `db-data` volume. `docker compose ... down -v` wipes it, and the next API start migrates and seeds again. The image is amd64 only, so on Apple silicon it runs under emulation. The host port binds to `127.0.0.1` only, so a locally run API (`dotnet run`) can use it but other machines can't.
 - `api`: compose builds `ConnectionStrings__FitnessClub` from `DB_NAME` and `DB_SA_PASSWORD` (pointing at `db`). At startup the API applies the EF migrations, including the mock data (see `api/CLAUDE.md`). It runs as the non-root `app` user. Health check: `GET /health`.
-- `ui`: the Auth0 values are build args baked into the JS, so rebuild (`up --build`) after changing them. nginx proxies `/api/` to `api:8080`, so the browser talks to one origin and the API needs no CORS.
+- `ui`: the Auth0 values are build args baked into the JS, so rebuild (`up --build`) after changing them. nginx proxies `/api/` to `fitnessclub-api:8080` (a network alias of `api`, unique even on a shared proxy network), so the browser talks to one origin and the API needs no CORS.
 
 ## Variables (`deploy/.env`)
 
@@ -60,17 +60,19 @@ docker compose -f deploy/docker-compose.yml down
 
 ## Server (`docker-compose.server.yml`)
 
-It runs the same services, networks, health checks and volume as `docker-compose.yml`, and builds the images on the server from the cloned repo. The differences:
+The server stack for Dokploy / Traefik. It runs the same `db`, `api` and `ui` with the same health checks, and builds the images on the server from the repo (tagged `fitnessclub-api:latest` and `fitnessclub-ui:latest`). The differences:
 
-- **No defaults.** Every setting uses `${VAR:?}`, so compose stops and names the first missing or empty variable. `deploy/.env.server.example` lists them all with comments.
-- **Env file:** it reads `deploy/.env.server`, passed with `--env-file`, so it never picks up the local `deploy/.env`.
-- **Project name:** `fitnessclub`. Its containers and its `db-data` volume are separate from the local stack's (project `deploy`).
-- **Bind addresses:** each port mapping is `<SERVICE>_BIND_ADDRESS:<SERVICE>_PORT`. The example publishes only the UI (`0.0.0.0:80`) and keeps the API and the database on `127.0.0.1`.
-- **More settings:** `API_ALLOWED_HOSTS` (`AllowedHosts`), `API_LOG_LEVEL_ASPNETCORE` (`Logging__LogLevel__Microsoft.AspNetCore`), and `CLUB_TIME_ZONE` also sets `TZ` on `db`.
+- **No defaults.** Every setting uses `${VAR:?set it in .env - <why>}`, so compose stops and names the first missing or empty variable. `deploy/.env.server.example` lists them all with comments.
+- **Routing:** Traefik labels route `GYM_UI_HOST` to `ui:8080` and `GYM_API_HOST` to `api:8080` on the `GYM_TRAEFIK_ENTRYPOINT` entrypoint. Neither publishes a host port.
+- **Networks:** `internal` (bridge) for all three, plus the external `GYM_PROXY_NETWORK` (Dokploy's `dokploy-network`) for `ui` and `api`. `db` is only on `internal`. nginx reaches the API as `fitnessclub-api`, so a service named `api` in another stack on the proxy network can't catch the requests.
+- **Database port:** `GYM_DB_BIND:GYM_DB_PORT` → 1433, meant for `127.0.0.1` and an SSH tunnel.
+- **Allowed hosts:** `AllowedHosts` is built from `GYM_UI_HOST;GYM_API_HOST;localhost`. `localhost` is for the health check.
+- **More settings than local:** `API_LOG_LEVEL_ASPNETCORE` (`Logging__LogLevel__Microsoft.AspNetCore`), and `CLUB_TIME_ZONE` also sets `TZ` on `db`.
 - **Edition:** the example sets `MSSQL_PID=Express`, because the Developer edition isn't licensed for production.
-- **Logs:** each container keeps at most 5 × 10 MB json-file logs.
+- **Logs:** the `local` driver, at most 5 × 10 MB per container.
+- **Project name:** `fitnessclub-deploy`, so its containers and `db-data` volume are separate from the local stack's.
 
-Run from the repo root on the server:
+In Dokploy, point a Compose service at `deploy/docker-compose.server.yml` and paste the variables into its Environment tab. By hand, from the repo root (the `GYM_PROXY_NETWORK` network must already exist):
 
 ```sh
 cp deploy/.env.server.example deploy/.env.server   # first time only, then fill in every value
@@ -83,4 +85,4 @@ docker compose -f deploy/docker-compose.server.yml --env-file deploy/.env.server
 
 - By default the API container runs in Production, so the OpenAPI document, Scalar page and Hangfire dashboard aren't available there.
 - "Today" and the seeded dates follow `CLUB_TIME_ZONE`. The seed runs once, when the database is first created, so changing the zone later doesn't move existing data.
-- Still to decide: TLS in front of the UI, and a registry so the server pulls images instead of building them.
+- Still to decide: a registry so the server pulls images instead of building them.
