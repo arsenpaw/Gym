@@ -38,59 +38,16 @@ internal sealed class FitnessClubDbContext(DbContextOptions<FitnessClubDbContext
             modelBuilder.Entity(root).Property<Guid>(VersionProperty).IsConcurrencyToken();
     }
 
-    private static readonly SemaphoreSlim NonRelationalSaveLock = new(1, 1);
-
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         StampChangedAggregates();
-        if (Database.IsRelational())
-            return base.SaveChanges(acceptAllChangesOnSuccess);
-
-        NonRelationalSaveLock.Wait();
-        try
-        {
-            foreach (var root in StoredAggregateRootsBeingChanged())
-                EnsureNotStale(root, root.GetDatabaseValues());
-
-            return base.SaveChanges(acceptAllChangesOnSuccess);
-        }
-        finally
-        {
-            NonRelationalSaveLock.Release();
-        }
+        return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
-    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         StampChangedAggregates();
-        if (Database.IsRelational())
-            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-
-        await NonRelationalSaveLock.WaitAsync(cancellationToken);
-        try
-        {
-            foreach (var root in StoredAggregateRootsBeingChanged())
-                EnsureNotStale(root, await root.GetDatabaseValuesAsync(cancellationToken));
-
-            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-        }
-        finally
-        {
-            NonRelationalSaveLock.Release();
-        }
-    }
-
-    private List<EntityEntry> StoredAggregateRootsBeingChanged() =>
-        ChangeTracker.Entries()
-            .Where(entry => entry.State is EntityState.Modified or EntityState.Deleted)
-            .Where(entry => !entry.Metadata.IsOwned() && entry.Entity is AggregateRoot)
-            .ToList();
-
-    private static void EnsureNotStale(EntityEntry root, PropertyValues? storedValues)
-    {
-        var expectedVersion = root.Property(VersionProperty).OriginalValue;
-        if (storedValues is null || !Equals(storedValues[VersionProperty], expectedVersion))
-            throw new DbUpdateConcurrencyException($"{root.Metadata.ClrType.Name} was changed or deleted since it was loaded.");
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
     private void StampChangedAggregates()

@@ -31,13 +31,9 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<FitnessClubDbContext>(options =>
-        {
-            var connectionString = configuration.GetConnectionString(ConnectionStringName);
-            if (string.IsNullOrWhiteSpace(connectionString))
-                options.UseInMemoryDatabase(configuration["Database:InMemoryName"] ?? "FitnessClub");
-            else
-                options.UseSqlServer(connectionString, sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
-        });
+            options.UseSqlServer(
+                RequiredConnectionString(configuration),
+                sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IMembershipPlanRepository, MembershipPlanRepository>();
@@ -58,19 +54,11 @@ public static class DependencyInjection
         services.AddScoped<INotificationSender, LoggingNotificationSender>();
         services.AddScoped<ExpiryNotificationJob>();
 
-        services.AddHangfire(hangfire =>
-        {
-            hangfire
-                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-                .UseSimpleAssemblyNameTypeSerializer()
-                .UseRecommendedSerializerSettings();
-
-            var connectionString = configuration.GetConnectionString(ConnectionStringName);
-            if (string.IsNullOrWhiteSpace(connectionString))
-                hangfire.UseInMemoryStorage();
-            else
-                hangfire.UseSqlServerStorage(connectionString);
-        });
+        services.AddHangfire(hangfire => hangfire
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UseSqlServerStorage(RequiredConnectionString(configuration)));
         services.AddHangfireServer();
 
         return services;
@@ -89,8 +77,17 @@ public static class DependencyInjection
     private static async Task InitializeDatabaseAsync(IServiceProvider services)
     {
         await using var scope = services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<FitnessClubDbContext>();
-        if (db.Database.IsRelational())
-            await db.Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<FitnessClubDbContext>().Database.MigrateAsync();
+    }
+
+    private static string RequiredConnectionString(IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString(ConnectionStringName);
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new InvalidOperationException(
+                $"ConnectionStrings:{ConnectionStringName} is not set. Start SQL Server with "
+                + "'docker compose -f deploy/docker-compose.yml up -d db' and set the connection string in user secrets (see api/CLAUDE.md).");
+
+        return connectionString;
     }
 }

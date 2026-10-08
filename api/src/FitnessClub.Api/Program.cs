@@ -24,6 +24,7 @@ builder.Services.AddOpenApi(options =>
     options.AddOperationTransformer<OperationIdTransformer>();
 });
 builder.Services.AddHealthChecks();
+BuildTimeDocument.RemoveHostedServicesWhenGenerating(builder.Services);
 
 var app = builder.Build();
 
@@ -47,7 +48,8 @@ if (app.Environment.IsDevelopment())
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapControllers();
 
-await app.UseInfrastructureAsync();
+if (!BuildTimeDocument.IsGenerating)
+    await app.UseInfrastructureAsync();
 
 await app.RunAsync();
 
