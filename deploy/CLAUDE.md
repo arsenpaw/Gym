@@ -38,7 +38,7 @@ This file covers only deployment. Every service runs as a Docker container, and 
 | `DB_NAME` | no | `FitnessClub` | Database the API creates and migrates |
 | `MSSQL_PID` | no | `Developer` | SQL Server edition or product key |
 | `CLUB_TIME_ZONE` | no | `UTC` | `TZ` of the api container: club-local "today", reports and the 08:00 expiry job (IANA name, e.g. `Europe/Kyiv`) |
-| `ASPNETCORE_ENVIRONMENT` | no | `Production` | `Development` turns on OpenAPI, Scalar and the Hangfire dashboard |
+| `ASPNETCORE_ENVIRONMENT` | no | `Production` | `Development` turns on OpenAPI, Scalar and the Hangfire dashboard. The example sets `Development`. |
 | `API_LOG_LEVEL` | no | `Information` | `Logging__LogLevel__Default` |
 | `AUTH0_ROLES_CLAIM` | no | `https://fitnessclub/roles` | `Auth0__RolesClaim` |
 | `EXPIRY_NOTICE_DAYS` | no | `7` | `Notifications__ExpiryNoticeDays` (1–60) |
@@ -48,7 +48,7 @@ This file covers only deployment. Every service runs as a Docker container, and 
 Run from the repo root:
 
 ```sh
-cp deploy/.env.example deploy/.env   # first time only, then fill in real Auth0 values
+cp deploy/.env.example deploy/.env   # first time only; works as is for local dev (dev Auth0 tenant)
 docker compose -f deploy/docker-compose.yml up --build -d
 docker compose -f deploy/docker-compose.yml ps
 docker compose -f deploy/docker-compose.yml logs -f api
@@ -83,6 +83,6 @@ docker compose -f deploy/docker-compose.server.yml --env-file deploy/.env.server
 
 ## Notes
 
-- By default the API container runs in Production, so the OpenAPI document, Scalar page and Hangfire dashboard aren't available there.
+- Without `ASPNETCORE_ENVIRONMENT` the API container runs in Production, so the OpenAPI document, Scalar page and Hangfire dashboard aren't available there.
 - "Today" and the seeded dates follow `CLUB_TIME_ZONE`. The seed runs once, when the database is first created, so changing the zone later doesn't move existing data.
 - Still to decide: a registry so the server pulls images instead of building them.
