@@ -125,6 +125,20 @@ Which project may reference which: Domain ← Application ← Infrastructure ←
    - `Auth0:RolesClaim` defaults to `https://fitnessclub/roles`.
    - Machine-to-machine test tokens have no roles, so they get 403 on role-protected endpoints.
 
+## Email (expiry notices)
+
+- Without `Smtp:Host`, notices go to `LoggingNotificationSender` and only appear in the log. That is the default locally and in tests.
+- To send real email locally, set the SMTP settings in user secrets. Gmail needs an app password:
+
+  ```sh
+  dotnet user-secrets --project src/FitnessClub.Api set "Smtp:Host" "smtp.gmail.com"
+  dotnet user-secrets --project src/FitnessClub.Api set "Smtp:Username" "<you>@gmail.com"
+  dotnet user-secrets --project src/FitnessClub.Api set "Smtp:Password" "<app password>"
+  dotnet user-secrets --project src/FitnessClub.Api set "Smtp:FromAddress" "<you>@gmail.com"
+  ```
+
+- `SmtpNotificationSenderTests` start a Mailpit container (`axllent/mailpit`) for the class.
+
 ## Hangfire
 
 - Storage is SQL Server (the `HangFire` schema in the same database).

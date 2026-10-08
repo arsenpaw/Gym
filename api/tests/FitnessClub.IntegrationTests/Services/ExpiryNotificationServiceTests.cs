@@ -62,15 +62,12 @@ public class ExpiryNotificationServiceTests(FitnessClubApiFactory factory) : Ser
     }
 
     [Fact]
-    public async Task CreateDueNoticesAsync_uses_sms_when_the_client_has_no_email()
+    public async Task CreateDueNoticesAsync_skips_a_client_without_email()
     {
-        var client = await ClientWithMembershipEndingInAsync(2, email: null);
+        await ClientWithMembershipEndingInAsync(2, email: null);
 
-        await Service().CreateDueNoticesAsync(Ct);
-
-        var notice = Assert.Single(await AllNotificationsAsync());
-        Assert.Equal(NotificationChannel.Sms, notice.Channel);
-        Assert.Equal(client.Phone.Value, notice.Recipient);
+        Assert.Equal(0, await Service().CreateDueNoticesAsync(Ct));
+        Assert.Empty(await AllNotificationsAsync());
     }
 
     [Theory]

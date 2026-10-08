@@ -228,6 +228,14 @@ public class ClientTests
     }
 
     [Fact]
+    public void NeedsExpiryNotice_is_false_for_a_client_without_email()
+    {
+        var client = TestData.ClientWithMembership(email: null);
+
+        Assert.False(client.NeedsExpiryNotice(client.Memberships.Single(), TestData.Today));
+    }
+
+    [Fact]
     public void MembershipsNeedingExpiryNotice_returns_only_those_ending_by_the_date()
     {
         var client = TestData.ClientWithMembership(validityDays: 3);

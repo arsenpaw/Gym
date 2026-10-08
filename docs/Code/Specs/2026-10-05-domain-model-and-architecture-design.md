@@ -103,7 +103,7 @@ Behaviour:
 - `CheckIn(now)` → `Visit`: needs an active membership today and allows one check-in per membership per day (`Membership.LastVisitOn`), then uses one visit. A second scan on the same day is rejected and doesn't use up a visit.
 - `CancelMembership(id, now)`: only the client's own membership. It can't be cancelled twice or after it has ended.
 - `Owns(membership)`: guards other aggregates that take a membership.
-- `NeedsExpiryNotice(membership, today)`: owned, not cancelled, visits left, not yet ended, and the client hasn't already bought a later membership. `MembershipsNeedingExpiryNotice(today, endsBy)` lists them for the job.
+- `NeedsExpiryNotice(membership, today)`: owned, the client has an email address, not cancelled, visits left, not yet ended, and the client hasn't already bought a later membership. `MembershipsNeedingExpiryNotice(today, endsBy)` lists them for the job.
 
 Repository: `ListAsync`, `PhoneExistsAsync(phone, excludeId)`, `ListWithMembershipsEndingBetweenAsync(from, to)` (for the expiry job).
 
@@ -157,7 +157,7 @@ Repository: `TrainerHasSessionDuringAsync`, `RoomIsBookedDuringAsync`, `ClientHa
 
 ### Notification (`Domain/Notifications`)
 
-`ClientId`, `MembershipId`, `Type` (`MembershipExpiring`), `Channel` (`Email` when the client has one, else `Sms`), `Recipient`, `Message`, `Status` (`Pending` → `Sent` | `Failed`, and `Failed` → `Pending` through `Retry()`), `CreatedAt`, `SentAt`, `FailureReason` (≤ 500, truncated). `MembershipExpiring(client, membership, now)` refuses memberships for which `Client.NeedsExpiryNotice` is false (renewed, cancelled, ended or used up). Only one notice per membership and type (unique index plus `ExistsForMembershipAsync`), so the daily job is idempotent. Repository: `ExistsForMembershipAsync`, `ListPendingAsync`, `ListAsync(status?)`.
+`ClientId`, `MembershipId`, `Type` (`MembershipExpiring`), `Channel` (always `Email` for new notices; `Sms` remains only for older rows), `Recipient`, `Message`, `Status` (`Pending` → `Sent` | `Failed`, and `Failed` → `Pending` through `Retry()`), `CreatedAt`, `SentAt`, `FailureReason` (≤ 500, truncated). `MembershipExpiring(client, membership, now)` refuses memberships for which `Client.NeedsExpiryNotice` is false (no client email, renewed, cancelled, ended or used up). Only one notice per membership and type (unique index plus `ExistsForMembershipAsync`), so the daily job is idempotent. Repository: `ExistsForMembershipAsync`, `ListPendingAsync`, `ListAsync(status?)`.
 
 ## Requirement coverage
 

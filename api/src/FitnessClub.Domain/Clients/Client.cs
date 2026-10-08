@@ -85,6 +85,7 @@ public sealed class Client : AggregateRoot
 
     public bool NeedsExpiryNotice(Membership membership, DateOnly today) =>
         Owns(membership)
+        && Email is not null
         && !membership.IsCancelled
         && membership.HasVisitsRemaining
         && membership.EndsOn >= today

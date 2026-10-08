@@ -74,6 +74,12 @@ services:
       Auth0__Audience: ${AUTH0_AUDIENCE:?set it in .env - the auth0 api identifier}
       Auth0__RolesClaim: ${AUTH0_ROLES_CLAIM:?set it in .env - the token claim that carries the roles}
       Notifications__ExpiryNoticeDays: ${EXPIRY_NOTICE_DAYS:?set it in .env - days before expiry to notify, 1-60}
+      Smtp__Host: ${SMTP_HOST:?set it in .env - the smtp server that sends expiry emails, e.g. smtp.gmail.com}
+      Smtp__Port: ${SMTP_PORT:?set it in .env - the smtp port, 587 for starttls or 465 for ssl}
+      Smtp__Username: ${SMTP_USERNAME:?set it in .env - the smtp login}
+      Smtp__Password: ${SMTP_PASSWORD:?set it in .env - the smtp password, for gmail an app password}
+      Smtp__FromAddress: ${SMTP_FROM_ADDRESS:?set it in .env - the address expiry emails come from}
+      Smtp__FromName: ${SMTP_FROM_NAME:?set it in .env - the sender name clients see, e.g. Fitness Club}
 
     expose:
       - "8080"

@@ -42,6 +42,11 @@ This file covers only deployment. Every service runs as a Docker container, and 
 | `API_LOG_LEVEL` | no | `Information` | `Logging__LogLevel__Default` |
 | `AUTH0_ROLES_CLAIM` | no | `https://fitnessclub/roles` | `Auth0__RolesClaim` |
 | `EXPIRY_NOTICE_DAYS` | no | `7` | `Notifications__ExpiryNoticeDays` (1–60) |
+| `SMTP_HOST` | no | empty | `Smtp__Host`. Empty means expiry notices are only logged. Set (e.g. `smtp.gmail.com`) to email them |
+| `SMTP_PORT` | no | `587` | `Smtp__Port`. 587 = STARTTLS, 465 = SSL |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | no | empty | `Smtp__Username` / `Smtp__Password`. For Gmail, the address and an app password |
+| `SMTP_FROM_ADDRESS` | if `SMTP_HOST` is set | empty | `Smtp__FromAddress`. Without it, a set host fails startup |
+| `SMTP_FROM_NAME` | no | `Fitness Club` | `Smtp__FromName` |
 
 ## Commands
 
@@ -68,6 +73,7 @@ The server stack for Dokploy / Traefik. It runs the same `db`, `api` and `ui` wi
 - **Database port:** `GYM_DB_BIND:GYM_DB_PORT` → 1433, meant for `127.0.0.1` and an SSH tunnel.
 - **Allowed hosts:** `AllowedHosts` is built from `GYM_UI_HOST;GYM_API_HOST;localhost`. `localhost` is for the health check.
 - **More settings than local:** `API_LOG_LEVEL_ASPNETCORE` (`Logging__LogLevel__Microsoft.AspNetCore`), and `CLUB_TIME_ZONE` also sets `TZ` on `db`.
+- **Email is required:** every `SMTP_*` variable must be set, so the server always emails expiry notices. An SMTP relay without a login isn't supported there.
 - **Edition:** the example sets `MSSQL_PID=Express`, because the Developer edition isn't licensed for production.
 - **Logs:** the `local` driver, at most 5 × 10 MB per container.
 - **Project name:** `fitnessclub-deploy`, so its containers and `db-data` volume are separate from the local stack's.

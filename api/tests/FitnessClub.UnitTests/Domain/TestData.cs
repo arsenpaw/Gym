@@ -23,9 +23,9 @@ internal static class TestData
             email is null ? null : EmailAddress.Create(email),
             Now);
 
-    public static Client ClientWithMembership(int validityDays = 30, int? visitLimit = null)
+    public static Client ClientWithMembership(int validityDays = 30, int? visitLimit = null, string? email = "olena@example.com")
     {
-        var client = Client();
+        var client = Client(email);
         Buy(client, Plan(validityDays, visitLimit));
         return client;
     }

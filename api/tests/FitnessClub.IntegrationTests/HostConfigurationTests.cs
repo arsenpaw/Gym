@@ -1,8 +1,11 @@
 using System.Net;
+using FitnessClub.Application.Abstractions;
 using FitnessClub.Application.Common;
+using FitnessClub.Infrastructure.Notifications;
 using FitnessClub.IntegrationTests.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace FitnessClub.IntegrationTests;
@@ -65,5 +68,37 @@ public class HostConfigurationTests(FitnessClubApiFactory factory) : IClassFixtu
 
         var exception = Assert.Throws<OptionsValidationException>(() => invalid.CreateClient());
         Assert.Contains("ExpiryNoticeDays", exception.Message);
+    }
+
+    [Fact]
+    public void Notifications_are_only_logged_without_an_smtp_host()
+    {
+        using var scope = factory.Services.CreateScope();
+
+        Assert.IsType<LoggingNotificationSender>(scope.ServiceProvider.GetRequiredService<INotificationSender>());
+    }
+
+    [Fact]
+    public void Notifications_go_through_smtp_when_a_host_is_set()
+    {
+        using var baseFactory = new FitnessClubApiFactory();
+        using var smtp = baseFactory.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("Smtp:Host", "smtp.test.invalid");
+            builder.UseSetting("Smtp:FromAddress", "club@example.com");
+        });
+        using var scope = smtp.Services.CreateScope();
+
+        Assert.IsType<SmtpNotificationSender>(scope.ServiceProvider.GetRequiredService<INotificationSender>());
+    }
+
+    [Fact]
+    public void Smtp_host_without_from_address_fails_at_startup()
+    {
+        using var baseFactory = new FitnessClubApiFactory();
+        using var invalid = baseFactory.WithWebHostBuilder(builder => builder.UseSetting("Smtp:Host", "smtp.test.invalid"));
+
+        var exception = Assert.Throws<OptionsValidationException>(() => invalid.CreateClient());
+        Assert.Contains("Smtp:FromAddress", exception.Message);
     }
 }

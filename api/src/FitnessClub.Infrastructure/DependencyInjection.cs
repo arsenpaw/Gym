@@ -51,7 +51,17 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.AddSingleton(provider => provider.GetRequiredService<IOptions<ExpiryNotificationOptions>>().Value);
-        services.AddScoped<INotificationSender, LoggingNotificationSender>();
+        services.AddOptions<SmtpOptions>()
+            .Bind(configuration.GetSection(SmtpOptions.SectionName))
+            .ValidateDataAnnotations()
+            .Validate(
+                smtp => !smtp.IsConfigured || !string.IsNullOrWhiteSpace(smtp.FromAddress),
+                $"{SmtpOptions.SectionName}:FromAddress is required when {SmtpOptions.SectionName}:Host is set.")
+            .ValidateOnStart();
+        if (string.IsNullOrWhiteSpace(configuration[$"{SmtpOptions.SectionName}:Host"]))
+            services.AddScoped<INotificationSender, LoggingNotificationSender>();
+        else
+            services.AddScoped<INotificationSender, SmtpNotificationSender>();
         services.AddScoped<ExpiryNotificationJob>();
 
         services.AddHangfire(hangfire => hangfire

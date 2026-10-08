@@ -21,14 +21,11 @@ public class NotificationTests
     }
 
     [Fact]
-    public void MembershipExpiring_falls_back_to_sms()
+    public void MembershipExpiring_for_client_without_email_throws()
     {
-        var client = TestData.ClientWithMembership();
+        var client = TestData.ClientWithMembership(email: null);
 
-        var notification = Notification.MembershipExpiring(client, client.Memberships.Single(), TestData.Now);
-
-        Assert.Equal(NotificationChannel.Sms, notification.Channel);
-        Assert.Equal(client.Phone.Value, notification.Recipient);
+        Assert.Throws<DomainException>(() => Notification.MembershipExpiring(client, client.Memberships.Single(), TestData.Now));
     }
 
     [Fact]
@@ -90,7 +87,7 @@ public class NotificationTests
         var client = TestData.ClientWithMembership();
         var notification = Notification.MembershipExpiring(client, client.Memberships.Single(), TestData.Now);
         Assert.Throws<DomainException>(() => notification.Retry());
-        notification.MarkFailed("SMS gateway timeout");
+        notification.MarkFailed("Mailbox unavailable.");
 
         notification.Retry();
 

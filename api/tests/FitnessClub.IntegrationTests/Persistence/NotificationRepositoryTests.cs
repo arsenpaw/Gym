@@ -11,7 +11,7 @@ public class NotificationRepositoryTests(FitnessClubApiFactory factory) : Persis
     [Fact]
     public async Task Notification_round_trips_and_is_found_by_membership()
     {
-        var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), null, Now);
+        var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), EmailAddress.Create("olena@example.com"), Now);
         var payment = client.PurchaseMembership(await SavedPlanAsync(), Today, PaymentMethod.Cash, Now);
         var membership = client.Memberships.Single(m => m.Id == payment.MembershipId);
         var notification = Notification.MembershipExpiring(client, membership, Now);
@@ -27,7 +27,7 @@ public class NotificationRepositoryTests(FitnessClubApiFactory factory) : Persis
 
         var loaded = await ReadAsync<INotificationRepository, Notification?>(n => n.GetByIdAsync(notification.Id, Ct));
         Assert.Equal(NotificationStatus.Sent, loaded!.Status);
-        Assert.Equal(NotificationChannel.Sms, loaded.Channel);
+        Assert.Equal(NotificationChannel.Email, loaded.Channel);
         Assert.DoesNotContain(await ReadAsync<INotificationRepository, IReadOnlyList<Notification>>(n => n.ListPendingAsync(Ct)), n => n.Id == notification.Id);
     }
 }
