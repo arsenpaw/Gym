@@ -5,11 +5,11 @@ React single-page app for the fitness club staff. It gets all of its data from t
 ## Screens (from requirements)
 
 - Check-in: find a client and record a visit.
-- Clients and memberships: list, register, edit, sell and cancel memberships, visit history.
+- Clients and memberships: list, register, edit, sell and cancel memberships, visit history, and the Messages card (preview and send the expiry reminder or promotion email).
 - Trainers: profile, working hours, assigned clients, Auth0 login link.
 - Schedule: calendar of group and individual sessions, scheduling, bookings. Trainers see their own sessions, read-only.
 - Rooms and membership plans.
-- Notifications (expiry reminders) and reports: client activity, revenue, trainer and room load.
+- Notifications (expiry notices, reminders and promotions) and reports: client activity, revenue, trainer and room load.
 
 ## Container
 

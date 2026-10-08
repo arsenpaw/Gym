@@ -125,19 +125,18 @@ Which project may reference which: Domain ← Application ← Infrastructure ←
    - `Auth0:RolesClaim` defaults to `https://fitnessclub/roles`.
    - Machine-to-machine test tokens have no roles, so they get 403 on role-protected endpoints.
 
-## Email (expiry notices)
+## Email (Twilio SendGrid)
 
-- Without `Smtp:Host`, notices go to `LoggingNotificationSender` and only appear in the log. That is the default locally and in tests.
-- To send real email locally, set the SMTP settings in user secrets. Gmail needs an app password:
+- Expiry notices, reminders and promotions are sent by `SendGridNotificationSender` (SendGrid v3 REST API, typed `HttpClient`). Without `SendGrid:ApiKey`, they go to `LoggingNotificationSender` and only appear in the log. That is the default locally and in tests.
+- The two HTML templates are embedded resources in `src/FitnessClub.Infrastructure/Notifications/Templates/`, filled by `EmailTemplates` (`{{Token}}`, values HTML-encoded). Inline CSS only, because email clients drop `<style>` and SVG.
+- To send real email locally, set the SendGrid settings in user secrets. The from-address must be verified in SendGrid:
 
   ```sh
-  dotnet user-secrets --project src/FitnessClub.Api set "Smtp:Host" "smtp.gmail.com"
-  dotnet user-secrets --project src/FitnessClub.Api set "Smtp:Username" "<you>@gmail.com"
-  dotnet user-secrets --project src/FitnessClub.Api set "Smtp:Password" "<app password>"
-  dotnet user-secrets --project src/FitnessClub.Api set "Smtp:FromAddress" "<you>@gmail.com"
+  dotnet user-secrets --project src/FitnessClub.Api set "SendGrid:ApiKey" "SG.<key>"
+  dotnet user-secrets --project src/FitnessClub.Api set "SendGrid:FromAddress" "<verified sender>"
   ```
 
-- `SmtpNotificationSenderTests` start a Mailpit container (`axllent/mailpit`) for the class.
+- `SendGridNotificationSenderTests` use a stub `HttpMessageHandler`, so no network or container is needed.
 
 ## Hangfire
 

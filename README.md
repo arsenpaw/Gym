@@ -45,7 +45,7 @@ To run without Docker, see `api/CLAUDE.md` and `ui/CLAUDE.md`. All settings are 
 - **Optimistic concurrency:** a shadow `Version` token on every aggregate; a stale save → 409.
 - **Exception → Problem Details:** one handler maps exceptions to RFC 7807 responses (400/404/409/500).
 - **Separate read side for reports:** `IReportQueries` queries the database directly instead of loading aggregates.
-- **Strategy / adapter:** `INotificationSender`: `SmtpNotificationSender` (MailKit) when SMTP is configured, otherwise `LoggingNotificationSender`.
+- **Strategy / adapter:** `INotificationSender`: `SendGridNotificationSender` (Twilio SendGrid) when an API key is configured, otherwise `LoggingNotificationSender`.
 - **Scheduled job:** a Hangfire recurring job sends expiry notices daily.
 - **Injected clock:** `TimeProvider` instead of `DateTime.UtcNow`, so time is testable.
 - **Role-based auth:** Auth0 JWT, an "authenticated" fallback policy, `[Authorize(Roles = …)]`.

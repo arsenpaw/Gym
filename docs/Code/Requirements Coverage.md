@@ -16,7 +16,7 @@ Maps each requirement in [[Fitness Club System]] to its API endpoints. The domai
 | 3 | Trainer profile (specialization, schedule, client list) | `GET/POST /api/trainers`, `GET/PUT /api/trainers/{id}`, `/activate`, `/deactivate`, `PUT /{id}/working-hours`, `POST/DELETE /{id}/clients/{clientId}`, `PUT /{id}/identity` | [[2026-10-07-trainers-endpoints-design]] | ✅ |
 | 4 | Group and individual session sign-ups | Rooms: `GET/POST /api/rooms`, `GET/PUT /api/rooms/{id}`, `/activate`, `/deactivate`. Sessions: `GET /api/sessions?from&to`, `GET /api/sessions/mine`, `GET /api/sessions/{id}`, `POST /api/sessions`, `POST /{id}/cancel`, `POST /{id}/bookings`, `POST /{id}/bookings/{clientId}/cancel` | [[2026-10-07-rooms-endpoints-design]], [[2026-10-07-sessions-endpoints-design]] | ✅ |
 | 5 | Configurable plans (single visit, monthly, yearly) | `GET/POST /api/membership-plans`, `GET/PUT /{id}`, `/activate`, `/deactivate` | [[2026-10-05-api-foundation-design]] | ✅ |
-| 6 | Automatic expiry notification | Daily Hangfire job `membership-expiry-notifications` at 08:00 club time; `GET /api/notifications?status`, `POST /{id}/retry`, `POST /run` | [[2026-10-07-expiry-notifications-design]] | ✅ (email over SMTP; clients without an email address get no notice) |
+| 6 | Automatic expiry notification | Daily Hangfire job `membership-expiry-notifications` at 08:00 club time; `GET /api/notifications?status`, `POST /{id}/retry`, `POST /run` | [[2026-10-07-expiry-notifications-design]] | ✅ (email through Twilio SendGrid; clients without an email address get no notice). Staff can also send a reminder or promotion: `GET /api/clients/{id}/messages/preview`, `POST/GET /api/clients/{id}/messages` ([[2026-10-08-client-messages-design]]) |
 | 7 | Report: clients with visit activity | `GET /api/reports/client-activity?from&to` | [[2026-10-07-reports-design]] | ✅ |
 | 8 | Report: revenue per month / year | `GET /api/reports/revenue?year&month` | [[2026-10-07-reports-design]] | ✅ |
 | 9 | Report: trainer and room load by day | `GET /api/reports/load?from&to` | [[2026-10-07-reports-design]] | ✅ |
@@ -49,7 +49,7 @@ The staff portal is described in [[2026-10-07-ui-design]].
 
 ## Open items
 
-- Notifications are emailed by `SmtpNotificationSender` when `Smtp:Host` is set, otherwise only written to the log by `LoggingNotificationSender`. There is no SMS channel, so clients without an email address get no notice.
+- Notifications are emailed by `SendGridNotificationSender` when `SendGrid:ApiKey` is set, otherwise only written to the log by `LoggingNotificationSender`. There is no SMS channel, so clients without an email address get no notice.
 - "Now" is `TimeProvider.GetLocalNow()`, so the server's time zone must be the club's. Set `TZ` in the Docker image.
 - Enums are sent as strings through per-property converters. A global JSON enum converter in `Program.cs` would make this one rule.
 - The notifications list has no paging.
