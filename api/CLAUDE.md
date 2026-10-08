@@ -5,7 +5,7 @@ Backend API for the fitness club system. It is the only owner of domain logic an
 ## Stack
 
 - .NET 10, ASP.NET Core controllers, Clean Architecture with DDD aggregates, repositories and a unit of work
-- EF Core: SQL Server with migrations, or InMemory when no connection string is set
+- EF Core on SQL Server with migrations. There is no in-memory fallback.
 - Auth0 JWT logins with roles
 - Hangfire for scheduled jobs
 - OpenAPI + Scalar API docs
@@ -28,6 +28,8 @@ dotnet test --project tests/FitnessClub.IntegrationTests --filter-method "*Creat
 dotnet run --project src/FitnessClub.Api                      # http://localhost:5080 (Development)
 ```
 
+- **Tests need Docker running.** Integration tests start one SQL Server container (Testcontainers, `mcr.microsoft.com/mssql/server:2022-latest`) for the whole run. The first run pulls the image.
+- **Running locally needs SQL Server:** start `db` from compose and set `ConnectionStrings:FitnessClub` (see "Persistence"). Without it, startup fails with `InvalidOperationException` naming the setting.
 - **Filters need `--project`.** Filters like `--filter-class` and `--filter-method` only work together with `--project`. Run against the whole solution, the test project with no matching tests fails with "zero tests ran".
 - **Development URLs:** `/scalar` and `/swagger` (API docs; use **Authorize** to paste an Auth0 access token), `/openapi/v1.json`, `/hangfire` (from your own machine only), `/health`.
 - **Running locally needs Auth0 settings,** otherwise startup fails with `OptionsValidationException`:
@@ -44,8 +46,8 @@ src/FitnessClub.Domain          aggregates, value objects (SharedKernel), domain
 src/FitnessClub.Application     I*Service + internal services, request/response records, IUnitOfWork, Roles
 src/FitnessClub.Infrastructure  internal DbContext, configurations, repositories, UnitOfWork, Hangfire
 src/FitnessClub.Api             controllers, Auth0 setup, exception → problem details, Program.cs
-tests/FitnessClub.UnitTests     Domain rules + Application services against fakes (no Infrastructure)
-tests/FitnessClub.IntegrationTests  HTTP tests and repository round-trips via FitnessClubApiFactory
+tests/FitnessClub.UnitTests     Domain rules only (no repositories, no Infrastructure)
+tests/FitnessClub.IntegrationTests  HTTP tests, repository round-trips, and service tests (Services/) on SQL Server via FitnessClubApiFactory
 tests/FitnessClub.ArchitectureTests layer, boundary, DDD and no-comment rules
 ```
 
@@ -68,12 +70,14 @@ Which project may reference which: Domain ← Application ← Infrastructure ←
   - Every endpoint requires a logged-in user (fallback policy). Public endpoints must say `.AllowAnonymous()`.
   - Controllers use `[Authorize(Roles = ...)]` with the `Roles` constants. A method-level `[Authorize]` adds to the class-level one.
 - **Time:** use the injected `TimeProvider`, never `DateTime.UtcNow`. Domain methods take `DateTimeOffset now` and read dates in its offset, so pass club-local time.
-- **InMemory limits:** it doesn't enforce unique indexes or relationships, and it has no transactions. Check uniqueness in services, and still configure the indexes for SQL Server. A save rejected for a stale `Version` still writes nothing: on InMemory, `FitnessClubDbContext` serializes saves and checks every changed root's stored `Version` before writing, so both providers behave the same.
+- **Uniqueness:** services check unique values first so they can return a clear message. If two requests race past that check, SQL Server's unique index rejects the second save, and `UnitOfWork` turns errors 2601/2627 into `ConflictException` → 409. A save rejected for a stale `Version` → 409 as well, and SQL Server rolls the whole save back.
 - **Recurring jobs** are registered only in `Infrastructure/BackgroundJobs/RecurringJobs.Register`, which `UseInfrastructureAsync` calls at startup.
 - **Integration tests:**
   - `factory.CreateClientWithRoles(Roles.Admin)` signs in through the `X-Test-Roles` header. `factory.CreateClient()` is anonymous.
-  - Each test class gets its own InMemory database, but tests in the same class share it, so use unique names.
+  - Each `FitnessClubApiFactory` (one per test class) gets its own database in the shared container. The API migrates it at startup, including `SeedMockData`, and then `TestDatabase.DeleteAllRows` empties every `dbo` table, so tests start with no rows. Tests in the same class share the database, so use unique names and phones: SQL Server enforces unique indexes and foreign keys (save a plan before buying a membership with it).
   - Repository tests derive from `PersistenceTestBase`. Each of its helpers runs in its own DI scope.
+  - Service tests (`Services/`) derive from `ServiceTestBase`. It empties the database before each test and opens one DI scope for the test. Services are built with real repositories and a `CountingUnitOfWork` (`SaveCount`). Seed with `repository.Add(...)` then `SeedAsync()`, because unlike in-memory fakes, queries don't see unsaved rows. `TestData` lives in `UnitTests/Domain` and is linked into this project.
+  - Hangfire keeps process-wide statics (`JobStorage.Current`, its log provider). Don't build and dispose a second host inside the `Hangfire storage` collection, or the job test's worker logs through a disposed host and hangs.
 - **Warnings are errors.** In tests, pass `TestContext.Current.CancellationToken` to every async call.
 
 ## OpenAPI document (UI contract)
@@ -82,12 +86,11 @@ Which project may reference which: Domain ← Application ← Infrastructure ←
 - `OperationIdTransformer` names operations `{Controller}_{Action}`. Renaming an action renames the UI's generated hook.
 - Numbers are strict (`JsonNumberHandling.Strict` for MVC and `ConfigureHttpJsonOptions`): `"100"` is a 400, and the document types numbers as numbers.
 - Declare `[ProducesResponseType(StatusCodes.Status201Created)]` on `CreatedAtAction` actions and `Status204NoContent` on `NoContent()` actions. Never add class-level response attributes or `[Produces]`.
-- `BuildTimeDocument` supplies placeholder Auth0 settings only while the build generates the document.
+- While the build generates the document, `BuildTimeDocument` supplies placeholder Auth0 and connection-string settings, removes hosted services (the Hangfire server), and `Program` skips `UseInfrastructureAsync()`, so nothing connects to a database.
 
-## Persistence switch
+## Persistence
 
-- **`ConnectionStrings:FitnessClub` empty:** EF Core and Hangfire both use in-memory storage. Data is lost on restart.
-- **Connection string set:** both use SQL Server. At startup, `UseInfrastructureAsync()` runs `Database.MigrateAsync()`.
+- **`ConnectionStrings:FitnessClub` is required.** EF Core and Hangfire both use SQL Server. At startup, `UseInfrastructureAsync()` runs `Database.MigrateAsync()` before anything else touches the database (including the Hangfire dashboard), so a fresh, empty server works on the first start.
 - **Migrations** live in `src/FitnessClub.Infrastructure/Persistence/Migrations`:
   - `InitialCreate` builds the schema.
   - `SeedMockData` fills the database with demo data from `MockData.cs`: plans, rooms, trainers, 16 clients with membership histories, visits, payments, a schedule from 4 weeks back to 2 weeks ahead, bookings and notifications. Dates are relative to the moment the migration runs. All seeded ids start with `5eed`, and `Down` deletes only those rows and the rows that belong to them.
@@ -124,5 +127,5 @@ Which project may reference which: Domain ← Application ← Infrastructure ←
 
 ## Hangfire
 
-- Storage follows the persistence switch: in memory now, SQL Server when the connection string is set.
+- Storage is SQL Server (the `HangFire` schema in the same database).
 - The dashboard is at `/hangfire`, only in Development and only from your own machine.

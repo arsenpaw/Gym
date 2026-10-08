@@ -200,7 +200,7 @@ Report queries are read models built in sub-project 5 behind an Application inte
 - Report queries (sub-project 5).
 - Domain events and an outbox, and strongly typed ids.
 - Races between aggregates that a version token can't see: two admins scheduling the same trainer or room at once, and two requests booking one client into two different overlapping sessions. Admin scheduling is rare. Revisit with a serializable transaction or `sp_getapplock` when the endpoints exist.
-- Mapping SQL Server unique-index violations (`DbUpdateException` 2601/2627) to 409. InMemory can't raise them, so this comes with the SQL Server switch.
+- Mapping SQL Server unique-index violations (`DbUpdateException` 2601/2627) to 409. InMemory can't raise them, so this comes with the SQL Server switch. Done in 2026-10-08 (docs/Code/Plans/2026-10-08-sql-server-only.md).
 - Club time zone configuration (`TZ` in compose, and conversion of incoming times).
 - EF migrations (created when SQL Server is switched on).
 - Phone numbers are stored as typed: `+380…` and `380…` are different values. Normalizing to E.164 needs a country default.
