@@ -6,12 +6,12 @@ namespace FitnessClub.Infrastructure.Notifications;
 
 internal sealed partial class LoggingNotificationSender(ILogger<LoggingNotificationSender> logger) : INotificationSender
 {
-    public Task SendAsync(NotificationChannel channel, string recipient, string message, CancellationToken cancellationToken)
+    public Task SendAsync(Notification notification, CancellationToken cancellationToken)
     {
-        LogNotification(channel, recipient, message);
+        LogNotification(notification.Channel, notification.Recipient, notification.Subject, notification.Message);
         return Task.CompletedTask;
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Sending {Channel} notification to {Recipient}: {Message}")]
-    private partial void LogNotification(NotificationChannel channel, string recipient, string message);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Sending {Channel} notification to {Recipient}: {Subject}. {Message}")]
+    private partial void LogNotification(NotificationChannel channel, string recipient, string subject, string message);
 }

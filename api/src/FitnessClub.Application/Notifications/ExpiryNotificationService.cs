@@ -49,7 +49,7 @@ internal sealed class ExpiryNotificationService(
         {
             try
             {
-                await sender.SendAsync(notification.Channel, notification.Recipient, notification.Message, cancellationToken);
+                await sender.SendAsync(notification, cancellationToken);
                 notification.MarkSent(timeProvider.GetLocalNow());
                 sent++;
             }

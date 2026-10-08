@@ -71,7 +71,7 @@ public class HostConfigurationTests(FitnessClubApiFactory factory) : IClassFixtu
     }
 
     [Fact]
-    public void Notifications_are_only_logged_without_an_smtp_host()
+    public void Notifications_are_only_logged_without_a_sendgrid_api_key()
     {
         using var scope = factory.Services.CreateScope();
 
@@ -79,26 +79,26 @@ public class HostConfigurationTests(FitnessClubApiFactory factory) : IClassFixtu
     }
 
     [Fact]
-    public void Notifications_go_through_smtp_when_a_host_is_set()
+    public void Notifications_go_through_sendgrid_when_an_api_key_is_set()
     {
         using var baseFactory = new FitnessClubApiFactory();
-        using var smtp = baseFactory.WithWebHostBuilder(builder =>
+        using var sendGrid = baseFactory.WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("Smtp:Host", "smtp.test.invalid");
-            builder.UseSetting("Smtp:FromAddress", "club@example.com");
+            builder.UseSetting("SendGrid:ApiKey", "SG.test-key");
+            builder.UseSetting("SendGrid:FromAddress", "club@example.com");
         });
-        using var scope = smtp.Services.CreateScope();
+        using var scope = sendGrid.Services.CreateScope();
 
-        Assert.IsType<SmtpNotificationSender>(scope.ServiceProvider.GetRequiredService<INotificationSender>());
+        Assert.IsType<SendGridNotificationSender>(scope.ServiceProvider.GetRequiredService<INotificationSender>());
     }
 
     [Fact]
-    public void Smtp_host_without_from_address_fails_at_startup()
+    public void Sendgrid_api_key_without_from_address_fails_at_startup()
     {
         using var baseFactory = new FitnessClubApiFactory();
-        using var invalid = baseFactory.WithWebHostBuilder(builder => builder.UseSetting("Smtp:Host", "smtp.test.invalid"));
+        using var invalid = baseFactory.WithWebHostBuilder(builder => builder.UseSetting("SendGrid:ApiKey", "SG.test-key"));
 
         var exception = Assert.Throws<OptionsValidationException>(() => invalid.CreateClient());
-        Assert.Contains("Smtp:FromAddress", exception.Message);
+        Assert.Contains("SendGrid:FromAddress", exception.Message);
     }
 }

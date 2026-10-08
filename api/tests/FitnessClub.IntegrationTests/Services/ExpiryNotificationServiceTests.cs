@@ -159,7 +159,7 @@ public class ExpiryNotificationServiceTests(FitnessClubApiFactory factory) : Ser
         var result = await Service().SendPendingAsync(Ct);
 
         Assert.Equal(new NotificationDeliveryResult(1, 0), result);
-        Assert.Equal([(NotificationChannel.Email, "olena@example.com", notice.Message)], _sender.Sent);
+        Assert.Equal(notice.Id, Assert.Single(_sender.Sent).Id);
         Assert.Equal(NotificationStatus.Sent, notice.Status);
         Assert.Equal(TestData.Now.AddMinutes(5), notice.SentAt);
     }

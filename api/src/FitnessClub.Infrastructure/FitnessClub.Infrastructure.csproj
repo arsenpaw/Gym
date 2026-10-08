@@ -6,7 +6,6 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Hangfire.AspNetCore" />
     <PackageReference Include="Hangfire.SqlServer" />
-    <PackageReference Include="MailKit" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FitnessClub.Application\FitnessClub.Application.csproj" />

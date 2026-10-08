@@ -7,18 +7,18 @@ internal sealed class FakeNotificationSender : INotificationSender
 {
     public const string FailureMessage = "Mailbox unavailable.";
 
-    private readonly List<(NotificationChannel Channel, string Recipient, string Message)> _sent = [];
+    private readonly List<Notification> _sent = [];
 
-    public IReadOnlyList<(NotificationChannel Channel, string Recipient, string Message)> Sent => _sent;
+    public IReadOnlyList<Notification> Sent => _sent;
 
     public HashSet<string> FailingRecipients { get; } = [];
 
-    public Task SendAsync(NotificationChannel channel, string recipient, string message, CancellationToken cancellationToken)
+    public Task SendAsync(Notification notification, CancellationToken cancellationToken)
     {
-        if (FailingRecipients.Contains(recipient))
+        if (FailingRecipients.Contains(notification.Recipient))
             throw new InvalidOperationException(FailureMessage);
 
-        _sent.Add((channel, recipient, message));
+        _sent.Add(notification);
         return Task.CompletedTask;
     }
 }

@@ -52,17 +52,20 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton(provider => provider.GetRequiredService<IOptions<ExpiryNotificationOptions>>().Value);
         services.AddSingleton<IEmailTemplates, EmailTemplates>();
-        services.AddOptions<SmtpOptions>()
-            .Bind(configuration.GetSection(SmtpOptions.SectionName))
-            .ValidateDataAnnotations()
+        services.AddOptions<SendGridOptions>()
+            .Bind(configuration.GetSection(SendGridOptions.SectionName))
             .Validate(
-                smtp => !smtp.IsConfigured || !string.IsNullOrWhiteSpace(smtp.FromAddress),
-                $"{SmtpOptions.SectionName}:FromAddress is required when {SmtpOptions.SectionName}:Host is set.")
+                sendGrid => !sendGrid.IsConfigured || !string.IsNullOrWhiteSpace(sendGrid.FromAddress),
+                $"{SendGridOptions.SectionName}:FromAddress is required when {SendGridOptions.SectionName}:ApiKey is set.")
             .ValidateOnStart();
-        if (string.IsNullOrWhiteSpace(configuration[$"{SmtpOptions.SectionName}:Host"]))
+        if (string.IsNullOrWhiteSpace(configuration[$"{SendGridOptions.SectionName}:ApiKey"]))
             services.AddScoped<INotificationSender, LoggingNotificationSender>();
         else
-            services.AddScoped<INotificationSender, SmtpNotificationSender>();
+            services.AddHttpClient<INotificationSender, SendGridNotificationSender>(http =>
+            {
+                http.BaseAddress = SendGridNotificationSender.BaseAddress;
+                http.Timeout = SendGridNotificationSender.Timeout;
+            });
         services.AddScoped<ExpiryNotificationJob>();
 
         services.AddHangfire(hangfire => hangfire
