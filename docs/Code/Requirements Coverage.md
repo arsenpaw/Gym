@@ -32,6 +32,21 @@ Maps each requirement in [[Fitness Club System]] to its API endpoints. The domai
 | Sessions, bookings | Admin, Receptionist, Trainer (`/mine`: Trainer only) | Admin, Receptionist |
 | Notifications, reports | Admin | Admin |
 
+
+## UI screens
+
+The staff portal is described in [[2026-10-07-ui-design]].
+
+| # | Requirement | Screen |
+|---|---|---|
+| 1 | Client records | Clients (`/clients`, `/clients/:id`) |
+| 2 | Visits | Check-in (`/check-in`), visit history on the client page |
+| 3 | Trainer profile | Trainers (`/trainers`, `/trainers/:id`): hours, clients, login link |
+| 4 | Group and individual sign-ups | Schedule (`/schedule`): calendar, new session, bookings drawer. Rooms (`/rooms`) |
+| 5 | Membership plans | Membership plans (`/plans`), sold from the client page |
+| 6 | Expiry notification | Notifications (`/notifications`) |
+| 7–9 | Reports | Reports (`/reports`): client activity, revenue, trainer and room load |
+
 ## Open items
 
 - Notifications go through `LoggingNotificationSender`. A real email or SMS provider replaces it behind `INotificationSender`.
