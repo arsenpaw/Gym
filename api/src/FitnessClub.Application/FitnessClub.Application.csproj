@@ -6,6 +6,6 @@
     <ProjectReference Include="..\FitnessClub.Domain\FitnessClub.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="FitnessClub.UnitTests" />
+    <InternalsVisibleTo Include="FitnessClub.IntegrationTests" />
   </ItemGroup>
 </Project>

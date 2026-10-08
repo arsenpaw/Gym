@@ -1,20 +1,20 @@
 using FitnessClub.Application.Common;
 using FitnessClub.Application.Rooms;
 using FitnessClub.Domain.Common;
-using FitnessClub.UnitTests.Fakes;
+using FitnessClub.Domain.Rooms;
+using FitnessClub.IntegrationTests.Infrastructure;
 
-namespace FitnessClub.UnitTests.Application;
+namespace FitnessClub.IntegrationTests.Services;
 
-public class RoomServiceTests
+public class RoomServiceTests : ServiceTestBase
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private readonly FakeUnitOfWork _unitOfWork = new();
     private readonly RoomService _service;
 
-    public RoomServiceTests()
+    public RoomServiceTests(FitnessClubApiFactory factory) : base(factory)
     {
-        _service = new RoomService(new InMemoryRoomRepository(), _unitOfWork);
+        _service = new RoomService(Get<IRoomRepository>(), UnitOfWork);
     }
 
     private static RoomRequest Request(string name = "Hall A", int capacity = 20) =>
@@ -30,7 +30,7 @@ public class RoomServiceTests
         Assert.Equal("Hall A", loaded.Name);
         Assert.Equal(25, loaded.Capacity);
         Assert.True(loaded.IsActive);
-        Assert.Equal(1, _unitOfWork.SaveCount);
+        Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public class RoomServiceTests
         await _service.CreateAsync(Request("Hall A"), Ct);
 
         await Assert.ThrowsAsync<ConflictException>(() => _service.CreateAsync(Request("  HALL a "), Ct));
-        Assert.Equal(1, _unitOfWork.SaveCount);
+        Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
     [Theory]
@@ -49,7 +49,7 @@ public class RoomServiceTests
     public async Task CreateAsync_with_invalid_domain_values_throws_domain_exception(string name, int capacity)
     {
         await Assert.ThrowsAsync<DomainException>(() => _service.CreateAsync(Request(name, capacity), Ct));
-        Assert.Equal(0, _unitOfWork.SaveCount);
+        Assert.Equal(0, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public class RoomServiceTests
         var updated = await _service.UpdateAsync(created.Id, Request("hall a", 30), Ct);
 
         Assert.Equal(created with { Name = "hall a", Capacity = 30 }, updated);
-        Assert.Equal(2, _unitOfWork.SaveCount);
+        Assert.Equal(2, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class RoomServiceTests
         await Assert.ThrowsAsync<ConflictException>(() => _service.UpdateAsync(hallB.Id, Request("hall a"), Ct));
 
         Assert.Equal("Hall B", (await _service.GetAsync(hallB.Id, Ct)).Name);
-        Assert.Equal(2, _unitOfWork.SaveCount);
+        Assert.Equal(2, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -89,28 +89,28 @@ public class RoomServiceTests
         await Assert.ThrowsAsync<DomainException>(() => _service.UpdateAsync(created.Id, Request("Hall A", 0), Ct));
 
         Assert.Equal(20, (await _service.GetAsync(created.Id, Ct)).Capacity);
-        Assert.Equal(1, _unitOfWork.SaveCount);
+        Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
     [Fact]
     public async Task UpdateAsync_for_missing_room_throws_not_found()
     {
         await Assert.ThrowsAsync<NotFoundException>(() => _service.UpdateAsync(Guid.NewGuid(), Request(), Ct));
-        Assert.Equal(0, _unitOfWork.SaveCount);
+        Assert.Equal(0, UnitOfWork.SaveCount);
     }
 
     [Fact]
     public async Task ActivateAsync_for_missing_room_throws_not_found_and_does_not_save()
     {
         await Assert.ThrowsAsync<NotFoundException>(() => _service.ActivateAsync(Guid.NewGuid(), Ct));
-        Assert.Equal(0, _unitOfWork.SaveCount);
+        Assert.Equal(0, UnitOfWork.SaveCount);
     }
 
     [Fact]
     public async Task DeactivateAsync_for_missing_room_throws_not_found_and_does_not_save()
     {
         await Assert.ThrowsAsync<NotFoundException>(() => _service.DeactivateAsync(Guid.NewGuid(), Ct));
-        Assert.Equal(0, _unitOfWork.SaveCount);
+        Assert.Equal(0, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -136,6 +136,6 @@ public class RoomServiceTests
         await _service.ActivateAsync(room.Id, Ct);
 
         Assert.True((await _service.GetAsync(room.Id, Ct)).IsActive);
-        Assert.Equal(3, _unitOfWork.SaveCount);
+        Assert.Equal(3, UnitOfWork.SaveCount);
     }
 }

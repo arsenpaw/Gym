@@ -19,7 +19,7 @@ internal static class TestData
         FitnessClub.Domain.Clients.Client.Register(
             PersonName.Create("Olena", "Shevchenko", null),
             new DateOnly(1995, 3, 14),
-            PhoneNumber.Create("+380671234567"),
+            PhoneNumber.Create(UniquePhone()),
             email is null ? null : EmailAddress.Create(email),
             Now);
 
@@ -41,10 +41,12 @@ internal static class TestData
     public static Trainer Trainer()
     {
         var trainer = FitnessClub.Domain.Trainers.Trainer.Hire(
-            PersonName.Create("Taras", "Bondar", null), PhoneNumber.Create("+380501112233"), null, "Yoga");
+            PersonName.Create("Taras", "Bondar", null), PhoneNumber.Create(UniquePhone()), null, "Yoga");
         trainer.SetWorkingHours(Enum.GetValues<DayOfWeek>().Select(day => WorkingHours.Create(day, new TimeOnly(8, 0), new TimeOnly(20, 0))));
         return trainer;
     }
+
+    public static string UniquePhone() => $"+380{Random.Shared.NextInt64(100_000_000, 999_999_999)}";
 
     public static TimeSlot Slot(int startHour = 10, int durationMinutes = 60, int daysFromToday = 1)
     {

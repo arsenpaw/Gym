@@ -4,51 +4,52 @@ using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.Common;
 using FitnessClub.Domain.Notifications;
 using FitnessClub.Domain.Payments;
+using FitnessClub.IntegrationTests.Infrastructure;
 using FitnessClub.UnitTests.Domain;
-using FitnessClub.UnitTests.Fakes;
 
-namespace FitnessClub.UnitTests.Application;
+namespace FitnessClub.IntegrationTests.Services;
 
-public class ExpiryNotificationServiceTests
+public class ExpiryNotificationServiceTests(FitnessClubApiFactory factory) : ServiceTestBase(factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private readonly InMemoryClientRepository _clients = new();
-    private readonly InMemoryNotificationRepository _notifications = new();
     private readonly FakeNotificationSender _sender = new();
-    private readonly FakeUnitOfWork _unitOfWork = new();
     private readonly FakeTimeProvider _time = new(TestData.Now);
 
     private ExpiryNotificationService Service(int expiryNoticeDays = 7) =>
-        new(_clients, _notifications, _sender, _unitOfWork, _time, new ExpiryNotificationOptions { ExpiryNoticeDays = expiryNoticeDays });
+        new(Get<IClientRepository>(), Get<INotificationRepository>(), _sender, UnitOfWork, _time,
+            new ExpiryNotificationOptions { ExpiryNoticeDays = expiryNoticeDays });
 
-    private Client ClientWithMembershipEndingIn(int days, int validityDays = 30, string? email = "olena@example.com")
+    private Task<IReadOnlyList<Notification>> AllNotificationsAsync() => Get<INotificationRepository>().ListAsync(null, Ct);
+
+    private async Task<Client> ClientWithMembershipEndingInAsync(int days, int validityDays = 30, string? email = "olena@example.com")
     {
         var client = TestData.Client(email);
         var startedDaysAgo = validityDays - 1 - days;
         client.PurchaseMembership(
-            TestData.Plan(validityDays), TestData.Today.AddDays(-startedDaysAgo), PaymentMethod.Cash, TestData.Now.AddDays(-startedDaysAgo));
-        _clients.Add(client);
+            await SeedPlanAsync(validityDays), TestData.Today.AddDays(-startedDaysAgo), PaymentMethod.Cash, TestData.Now.AddDays(-startedDaysAgo));
+        Get<IClientRepository>().Add(client);
+        await SeedAsync();
         return client;
     }
 
     private async Task<Notification> PendingNoticeFor(string email)
     {
-        ClientWithMembershipEndingIn(3, email: email);
+        await ClientWithMembershipEndingInAsync(3, email: email);
         await Service().CreateDueNoticesAsync(Ct);
-        return _notifications.All.Single(n => n.Recipient == email);
+        return (await AllNotificationsAsync()).Single(n => n.Recipient == email);
     }
 
     [Fact]
     public async Task CreateDueNoticesAsync_creates_a_pending_notice_for_a_membership_ending_within_the_window()
     {
-        var client = ClientWithMembershipEndingIn(4);
+        var client = await ClientWithMembershipEndingInAsync(4);
         var membership = client.Memberships.Single();
 
         var created = await Service().CreateDueNoticesAsync(Ct);
 
         Assert.Equal(1, created);
-        var notice = Assert.Single(_notifications.All);
+        var notice = Assert.Single(await AllNotificationsAsync());
         Assert.Equal(client.Id, notice.ClientId);
         Assert.Equal(membership.Id, notice.MembershipId);
         Assert.Equal(NotificationType.MembershipExpiring, notice.Type);
@@ -57,19 +58,19 @@ public class ExpiryNotificationServiceTests
         Assert.Equal(NotificationStatus.Pending, notice.Status);
         Assert.Equal(TestData.Now, notice.CreatedAt);
         Assert.Contains("2026-10-09", notice.Message);
-        Assert.Equal(1, _unitOfWork.SaveCount);
+        Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
     [Fact]
     public async Task CreateDueNoticesAsync_uses_sms_when_the_client_has_no_email()
     {
-        ClientWithMembershipEndingIn(2, email: null);
+        var client = await ClientWithMembershipEndingInAsync(2, email: null);
 
         await Service().CreateDueNoticesAsync(Ct);
 
-        var notice = Assert.Single(_notifications.All);
+        var notice = Assert.Single(await AllNotificationsAsync());
         Assert.Equal(NotificationChannel.Sms, notice.Channel);
-        Assert.Equal("+380671234567", notice.Recipient);
+        Assert.Equal(client.Phone.Value, notice.Recipient);
     }
 
     [Theory]
@@ -77,7 +78,7 @@ public class ExpiryNotificationServiceTests
     [InlineData(7)]
     public async Task CreateDueNoticesAsync_includes_both_window_edges(int endsInDays)
     {
-        ClientWithMembershipEndingIn(endsInDays);
+        await ClientWithMembershipEndingInAsync(endsInDays);
 
         Assert.Equal(1, await Service().CreateDueNoticesAsync(Ct));
     }
@@ -85,17 +86,17 @@ public class ExpiryNotificationServiceTests
     [Fact]
     public async Task CreateDueNoticesAsync_ignores_memberships_ending_after_the_window()
     {
-        ClientWithMembershipEndingIn(8);
+        await ClientWithMembershipEndingInAsync(8);
 
         Assert.Equal(0, await Service().CreateDueNoticesAsync(Ct));
-        Assert.Empty(_notifications.All);
-        Assert.Equal(0, _unitOfWork.SaveCount);
+        Assert.Empty(await AllNotificationsAsync());
+        Assert.Equal(0, UnitOfWork.SaveCount);
     }
 
     [Fact]
     public async Task CreateDueNoticesAsync_uses_the_configured_window()
     {
-        ClientWithMembershipEndingIn(5);
+        await ClientWithMembershipEndingInAsync(5);
 
         Assert.Equal(0, await Service(expiryNoticeDays: 3).CreateDueNoticesAsync(Ct));
         Assert.Equal(1, await Service(expiryNoticeDays: 5).CreateDueNoticesAsync(Ct));
@@ -104,46 +105,47 @@ public class ExpiryNotificationServiceTests
     [Fact]
     public async Task CreateDueNoticesAsync_run_twice_creates_no_duplicates()
     {
-        ClientWithMembershipEndingIn(4);
+        await ClientWithMembershipEndingInAsync(4);
 
         await Service().CreateDueNoticesAsync(Ct);
         _time.Now = TestData.Now.AddDays(1);
         var secondRun = await Service().CreateDueNoticesAsync(Ct);
 
         Assert.Equal(0, secondRun);
-        Assert.Single(_notifications.All);
-        Assert.Equal(1, _unitOfWork.SaveCount);
+        Assert.Single(await AllNotificationsAsync());
+        Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
     [Fact]
     public async Task CreateDueNoticesAsync_skips_a_membership_the_client_has_already_renewed()
     {
-        var client = ClientWithMembershipEndingIn(4);
-        client.PurchaseMembership(TestData.Plan(30), TestData.Today.AddDays(5), PaymentMethod.Cash, TestData.Now);
+        var client = await ClientWithMembershipEndingInAsync(4);
+        client.PurchaseMembership(await SeedPlanAsync(30), TestData.Today.AddDays(5), PaymentMethod.Cash, TestData.Now);
 
         Assert.Equal(0, await Service().CreateDueNoticesAsync(Ct));
-        Assert.Empty(_notifications.All);
+        Assert.Empty(await AllNotificationsAsync());
     }
 
     [Fact]
     public async Task CreateDueNoticesAsync_skips_a_cancelled_membership()
     {
-        var client = ClientWithMembershipEndingIn(4);
+        var client = await ClientWithMembershipEndingInAsync(4);
         client.CancelMembership(client.Memberships.Single().Id, TestData.Now);
 
         Assert.Equal(0, await Service().CreateDueNoticesAsync(Ct));
-        Assert.Empty(_notifications.All);
+        Assert.Empty(await AllNotificationsAsync());
     }
 
     [Fact]
     public async Task CreateDueNoticesAsync_skips_a_pass_that_does_not_outlast_the_window()
     {
         var singleVisit = TestData.Client("single@example.com");
-        TestData.Buy(singleVisit, TestData.Plan(validityDays: 1, visitLimit: 1));
+        TestData.Buy(singleVisit, await SeedPlanAsync(validityDays: 1, visitLimit: 1));
         var notStarted = TestData.Client("future@example.com");
-        TestData.Buy(notStarted, TestData.Plan(validityDays: 5), TestData.Today.AddDays(1));
-        _clients.Add(singleVisit);
-        _clients.Add(notStarted);
+        TestData.Buy(notStarted, await SeedPlanAsync(validityDays: 5), TestData.Today.AddDays(1));
+        Get<IClientRepository>().Add(singleVisit);
+        Get<IClientRepository>().Add(notStarted);
+        await SeedAsync();
 
         Assert.Equal(0, await Service().CreateDueNoticesAsync(Ct));
     }
@@ -210,17 +212,17 @@ public class ExpiryNotificationServiceTests
     public async Task RetryAsync_for_a_notice_that_did_not_fail_throws_domain_exception()
     {
         var notice = await PendingNoticeFor("olena@example.com");
-        var saves = _unitOfWork.SaveCount;
+        var saves = UnitOfWork.SaveCount;
 
         await Assert.ThrowsAsync<DomainException>(() => Service().RetryAsync(notice.Id, Ct));
-        Assert.Equal(saves, _unitOfWork.SaveCount);
+        Assert.Equal(saves, UnitOfWork.SaveCount);
     }
 
     [Fact]
     public async Task RetryAsync_for_a_missing_notice_throws_not_found()
     {
         await Assert.ThrowsAsync<NotFoundException>(() => Service().RetryAsync(Guid.NewGuid(), Ct));
-        Assert.Equal(0, _unitOfWork.SaveCount);
+        Assert.Equal(0, UnitOfWork.SaveCount);
     }
 
     [Fact]
@@ -229,6 +231,7 @@ public class ExpiryNotificationServiceTests
         var failing = await PendingNoticeFor("broken@example.com");
         var pending = await PendingNoticeFor("olena@example.com");
         failing.MarkFailed("Mailbox unavailable.");
+        await SeedAsync();
 
         var all = await Service().ListAsync(new NotificationListRequest(), Ct);
         var failed = await Service().ListAsync(new NotificationListRequest { Status = "failed" }, Ct);
@@ -245,11 +248,11 @@ public class ExpiryNotificationServiceTests
     [Fact]
     public async Task RunAsync_creates_due_notices_then_sends_them()
     {
-        ClientWithMembershipEndingIn(1);
+        await ClientWithMembershipEndingInAsync(1);
 
         var result = await Service().RunAsync(Ct);
 
         Assert.Equal(new NotificationRunResponse(1, 1, 0), result);
-        Assert.Equal(NotificationStatus.Sent, Assert.Single(_notifications.All).Status);
+        Assert.Equal(NotificationStatus.Sent, Assert.Single(await AllNotificationsAsync()).Status);
     }
 }

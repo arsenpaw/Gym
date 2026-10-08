@@ -1,22 +1,42 @@
+using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.Common;
+using FitnessClub.Domain.Rooms;
+using FitnessClub.Domain.Trainers;
 using FitnessClub.Domain.Training;
-using FitnessClub.UnitTests.Fakes;
+using FitnessClub.IntegrationTests.Infrastructure;
+using FitnessClub.UnitTests.Domain;
 
-namespace FitnessClub.UnitTests.Domain;
+namespace FitnessClub.IntegrationTests.Services;
 
-public class TrainingSessionTests
+public class SessionSchedulerTests : ServiceTestBase
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private readonly InMemoryTrainingSessionRepository _repository = new();
-    private readonly SessionScheduler _scheduler;
+    private readonly ISessionScheduler _scheduler;
 
-    public TrainingSessionTests()
+    public SessionSchedulerTests(FitnessClubApiFactory factory) : base(factory)
     {
-        _scheduler = new SessionScheduler(_repository);
+        _scheduler = Get<ISessionScheduler>();
     }
 
-    private Task<Booking> BookAsync(TrainingSession session, FitnessClub.Domain.Clients.Client client, DateTimeOffset? now = null) =>
+    private async Task StoreAsync(TrainingSession session, Trainer trainer, Room room, params Client[] clients)
+    {
+        Get<ITrainerRepository>().Add(trainer);
+        Get<IRoomRepository>().Add(room);
+        foreach (var client in clients)
+            Get<IClientRepository>().Add(client);
+        Get<ITrainingSessionRepository>().Add(session);
+        await SeedAsync();
+    }
+
+    private async Task<Client> ClientWithMembershipAsync()
+    {
+        var client = TestData.Client();
+        TestData.Buy(client, await SeedPlanAsync());
+        return client;
+    }
+
+    private Task<Booking> BookAsync(TrainingSession session, Client client, DateTimeOffset? now = null) =>
         _scheduler.BookAsync(session, client, now ?? TestData.Now, Ct);
 
     private Task<TrainingSession> GroupSessionAsync(int capacity = 2) =>
@@ -89,38 +109,37 @@ public class TrainingSessionTests
     [Fact]
     public async Task Schedule_when_trainer_is_busy_throws()
     {
-        var repository = new InMemoryTrainingSessionRepository();
-        var scheduler = new SessionScheduler(repository);
         var trainer = TestData.Trainer();
-        repository.Add(await scheduler.ScheduleAsync("Yoga", SessionType.Group, trainer, TestData.Room(), TestData.Slot(startHour: 10), 5, TestData.Now, Ct));
+        var room = TestData.Room();
+        await StoreAsync(
+            await _scheduler.ScheduleAsync("Yoga", SessionType.Group, trainer, room, TestData.Slot(startHour: 10), 5, TestData.Now, Ct), trainer, room);
 
-        await Assert.ThrowsAsync<DomainException>(() => scheduler.ScheduleAsync(
+        await Assert.ThrowsAsync<DomainException>(() => _scheduler.ScheduleAsync(
             "Pilates", SessionType.Group, trainer, TestData.Room(), TestData.Slot(startHour: 10, durationMinutes: 30), 5, TestData.Now, Ct));
     }
 
     [Fact]
     public async Task Schedule_when_room_is_taken_throws()
     {
-        var repository = new InMemoryTrainingSessionRepository();
-        var scheduler = new SessionScheduler(repository);
+        var trainer = TestData.Trainer();
         var room = TestData.Room();
-        repository.Add(await scheduler.ScheduleAsync("Yoga", SessionType.Group, TestData.Trainer(), room, TestData.Slot(startHour: 10), 5, TestData.Now, Ct));
+        await StoreAsync(
+            await _scheduler.ScheduleAsync("Yoga", SessionType.Group, trainer, room, TestData.Slot(startHour: 10), 5, TestData.Now, Ct), trainer, room);
 
-        await Assert.ThrowsAsync<DomainException>(() => scheduler.ScheduleAsync(
+        await Assert.ThrowsAsync<DomainException>(() => _scheduler.ScheduleAsync(
             "Pilates", SessionType.Group, TestData.Trainer(), room, TestData.Slot(startHour: 10, durationMinutes: 30), 5, TestData.Now, Ct));
     }
 
     [Fact]
     public async Task Schedule_after_a_cancelled_session_in_the_same_room_is_allowed()
     {
-        var repository = new InMemoryTrainingSessionRepository();
-        var scheduler = new SessionScheduler(repository);
+        var trainer = TestData.Trainer();
         var room = TestData.Room();
-        var cancelled = await scheduler.ScheduleAsync("Yoga", SessionType.Group, TestData.Trainer(), room, TestData.Slot(), 5, TestData.Now, Ct);
+        var cancelled = await _scheduler.ScheduleAsync("Yoga", SessionType.Group, trainer, room, TestData.Slot(), 5, TestData.Now, Ct);
         cancelled.Cancel(TestData.Now);
-        repository.Add(cancelled);
+        await StoreAsync(cancelled, trainer, room);
 
-        var session = await scheduler.ScheduleAsync("Pilates", SessionType.Group, TestData.Trainer(), room, TestData.Slot(), 5, TestData.Now, Ct);
+        var session = await _scheduler.ScheduleAsync("Pilates", SessionType.Group, TestData.Trainer(), room, TestData.Slot(), 5, TestData.Now, Ct);
 
         Assert.Equal(SessionStatus.Scheduled, session.Status);
     }
@@ -210,10 +229,12 @@ public class TrainingSessionTests
     [Fact]
     public async Task Book_client_into_overlapping_session_throws()
     {
-        var client = TestData.ClientWithMembership();
-        var first = await GroupSessionAsync();
+        var client = await ClientWithMembershipAsync();
+        var trainer = TestData.Trainer();
+        var room = TestData.Room();
+        var first = await _scheduler.ScheduleAsync("Morning yoga", SessionType.Group, trainer, room, TestData.Slot(), 2, TestData.Now, Ct);
         await BookAsync(first, client);
-        _repository.Add(first);
+        await StoreAsync(first, trainer, room, client);
         var overlapping = await _scheduler.ScheduleAsync(
             "Pilates", SessionType.Group, TestData.Trainer(), TestData.Room(), TestData.Slot(startHour: 10, durationMinutes: 30), 5, TestData.Now, Ct);
 

@@ -1,4 +1,4 @@
-namespace FitnessClub.UnitTests.Fakes;
+namespace FitnessClub.IntegrationTests.Services;
 
 internal sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider
 {
