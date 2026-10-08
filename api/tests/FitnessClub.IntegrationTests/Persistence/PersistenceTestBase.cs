@@ -1,4 +1,6 @@
 using FitnessClub.Application.Abstractions;
+using FitnessClub.Domain.MembershipPlans;
+using FitnessClub.Domain.SharedKernel;
 using FitnessClub.IntegrationTests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -34,6 +36,13 @@ public abstract class PersistenceTestBase(FitnessClubApiFactory factory) : IClas
         await using var scope = Factory.Services.CreateAsyncScope();
         await work(scope.ServiceProvider);
         await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync(Ct);
+    }
+
+    protected async Task<MembershipPlan> SavedPlanAsync(int validityDays = 30, int? visitLimit = null)
+    {
+        var plan = MembershipPlan.Create($"Plan {Guid.NewGuid():N}", Money.Of(800m), validityDays, visitLimit);
+        await SaveAsync<IMembershipPlanRepository>(plans => plans.Add(plan));
+        return plan;
     }
 
     protected static string UniquePhone() => $"+380{Random.Shared.NextInt64(100_000_000, 999_999_999)}";

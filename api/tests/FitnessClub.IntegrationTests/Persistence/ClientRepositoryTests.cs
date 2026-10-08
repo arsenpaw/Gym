@@ -1,7 +1,6 @@
 using FitnessClub.Application.Abstractions;
 using FitnessClub.Application.Common;
 using FitnessClub.Domain.Clients;
-using FitnessClub.Domain.MembershipPlans;
 using FitnessClub.Domain.Payments;
 using FitnessClub.Domain.SharedKernel;
 using FitnessClub.Domain.Visits;
@@ -12,9 +11,6 @@ namespace FitnessClub.IntegrationTests.Persistence;
 
 public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceTestBase(factory)
 {
-    private static MembershipPlan Plan(int validityDays = 30, int? visitLimit = null) =>
-        MembershipPlan.Create($"Plan {Guid.NewGuid():N}", Money.Of(800m), validityDays, visitLimit);
-
     private static Client NewClient(string? email = "olena@example.com") =>
         Client.Register(
             PersonName.Create("Olena", "Shevchenko", "Petrivna"),
@@ -27,7 +23,7 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
     public async Task Client_round_trips_with_value_objects_and_memberships()
     {
         var client = NewClient();
-        var payment = client.PurchaseMembership(Plan(visitLimit: 8), Today, PaymentMethod.Cash, Now);
+        var payment = client.PurchaseMembership(await SavedPlanAsync(visitLimit: 8), Today, PaymentMethod.Cash, Now);
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
 
         var loaded = await ReadAsync<IClientRepository, Client?>(clients => clients.GetByIdAsync(client.Id, Ct));
@@ -51,7 +47,7 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
         await ChangeAsync<IClientRepository>(async clients =>
         {
             var loaded = await clients.GetByIdAsync(client.Id, Ct);
-            loaded!.PurchaseMembership(Plan(), Today, PaymentMethod.Card, Now);
+            loaded!.PurchaseMembership(await SavedPlanAsync(), Today, PaymentMethod.Card, Now);
         });
 
         var reloaded = await ReadAsync<IClientRepository, Client?>(clients => clients.GetByIdAsync(client.Id, Ct));
@@ -63,7 +59,7 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
     public async Task Check_in_saves_visit_and_used_visit_in_one_unit_of_work()
     {
         var client = NewClient();
-        client.PurchaseMembership(Plan(visitLimit: 5), Today, PaymentMethod.Cash, Now);
+        client.PurchaseMembership(await SavedPlanAsync(visitLimit: 5), Today, PaymentMethod.Cash, Now);
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
 
         await InUnitOfWorkAsync(async services =>
@@ -92,12 +88,12 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
     public async Task ListWithMembershipsEndingBetweenAsync_skips_cancelled_and_out_of_range()
     {
         var expiring = NewClient();
-        expiring.PurchaseMembership(Plan(validityDays: 3), Today, PaymentMethod.Cash, Now);
+        expiring.PurchaseMembership(await SavedPlanAsync(validityDays: 3), Today, PaymentMethod.Cash, Now);
         var cancelled = NewClient();
-        var cancelledPayment = cancelled.PurchaseMembership(Plan(validityDays: 3), Today, PaymentMethod.Cash, Now);
+        var cancelledPayment = cancelled.PurchaseMembership(await SavedPlanAsync(validityDays: 3), Today, PaymentMethod.Cash, Now);
         cancelled.CancelMembership(cancelledPayment.MembershipId, Now);
         var later = NewClient();
-        later.PurchaseMembership(Plan(validityDays: 60), Today, PaymentMethod.Cash, Now);
+        later.PurchaseMembership(await SavedPlanAsync(validityDays: 60), Today, PaymentMethod.Cash, Now);
         await SaveAsync<IClientRepository>(clients =>
         {
             clients.Add(expiring);
@@ -117,7 +113,7 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
     public async Task Payment_round_trips_and_is_listed_by_paid_date()
     {
         var client = NewClient();
-        var payment = client.PurchaseMembership(Plan(), Today, PaymentMethod.Card, Now);
+        var payment = client.PurchaseMembership(await SavedPlanAsync(), Today, PaymentMethod.Card, Now);
         await InUnitOfWorkAsync(services =>
         {
             services.GetRequiredService<IClientRepository>().Add(client);
@@ -137,7 +133,7 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
     public async Task Concurrent_changes_to_the_same_client_raise_conflict()
     {
         var client = NewClient();
-        client.PurchaseMembership(Plan(visitLimit: 1), Today, PaymentMethod.Cash, Now);
+        client.PurchaseMembership(await SavedPlanAsync(visitLimit: 1), Today, PaymentMethod.Cash, Now);
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
 
         await using var first = Factory.Services.CreateAsyncScope();
@@ -160,7 +156,7 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
     public async Task Purchase_rejected_after_a_concurrent_check_in_stores_no_membership_or_payment()
     {
         var client = NewClient();
-        client.PurchaseMembership(Plan(), Today, PaymentMethod.Cash, Now);
+        client.PurchaseMembership(await SavedPlanAsync(), Today, PaymentMethod.Cash, Now);
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
 
         await using var checkIn = Factory.Services.CreateAsyncScope();
@@ -168,7 +164,7 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
         var checkInCopy = await checkIn.ServiceProvider.GetRequiredService<IClientRepository>().GetByIdAsync(client.Id, Ct);
         var purchaseCopy = await purchase.ServiceProvider.GetRequiredService<IClientRepository>().GetByIdAsync(client.Id, Ct);
         checkIn.ServiceProvider.GetRequiredService<IVisitRepository>().Add(checkInCopy!.CheckIn(Now));
-        var payment = purchaseCopy!.PurchaseMembership(Plan(), Today.AddDays(30), PaymentMethod.Card, Now);
+        var payment = purchaseCopy!.PurchaseMembership(await SavedPlanAsync(), Today.AddDays(30), PaymentMethod.Card, Now);
         purchase.ServiceProvider.GetRequiredService<IPaymentRepository>().Add(payment);
 
         await checkIn.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync(Ct);
@@ -183,7 +179,7 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
     public async Task Changing_only_a_child_entity_still_bumps_the_aggregate_version()
     {
         var client = NewClient();
-        client.PurchaseMembership(Plan(), Today, PaymentMethod.Cash, Now);
+        client.PurchaseMembership(await SavedPlanAsync(), Today, PaymentMethod.Cash, Now);
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
 
         await using var stale = Factory.Services.CreateAsyncScope();

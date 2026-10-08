@@ -1,7 +1,6 @@
 using FitnessClub.Application.Abstractions;
 using FitnessClub.Application.Common;
 using FitnessClub.Domain.Clients;
-using FitnessClub.Domain.MembershipPlans;
 using FitnessClub.Domain.Payments;
 using FitnessClub.Domain.Rooms;
 using FitnessClub.Domain.SharedKernel;
@@ -34,7 +33,7 @@ public class TrainingSessionRepositoryTests(FitnessClubApiFactory factory) : Per
     {
         var (trainer, room) = await SeedTrainerAndRoomAsync();
         var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), null, Now);
-        client.PurchaseMembership(MembershipPlan.Create($"Plan {Guid.NewGuid():N}", Money.Of(800m), 30, null), Today, PaymentMethod.Cash, Now);
+        client.PurchaseMembership(await SavedPlanAsync(), Today, PaymentMethod.Cash, Now);
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
 
         TrainingSession session = null!;
@@ -83,7 +82,7 @@ public class TrainingSessionRepositoryTests(FitnessClubApiFactory factory) : Per
     private async Task<Client> SeedClientWithMembershipAsync()
     {
         var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), null, Now);
-        client.PurchaseMembership(MembershipPlan.Create($"Plan {Guid.NewGuid():N}", Money.Of(800m), 30, null), Today, PaymentMethod.Cash, Now);
+        client.PurchaseMembership(await SavedPlanAsync(), Today, PaymentMethod.Cash, Now);
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
         return client;
     }

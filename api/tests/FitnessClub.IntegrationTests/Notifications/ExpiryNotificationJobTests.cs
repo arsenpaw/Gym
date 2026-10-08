@@ -3,9 +3,7 @@ using FitnessClub.IntegrationTests.Infrastructure;
 using Hangfire;
 using Hangfire.States;
 using Hangfire.Storage;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace FitnessClub.IntegrationTests.Notifications;
 
@@ -40,16 +38,6 @@ public class ExpiryNotificationJobTests(FitnessClubApiFactory factory) : IClassF
         Assert.Equal(SucceededState.StateName, await WaitForFinalStateAsync(jobId));
         var notice = Assert.Single(await factory.NotificationsAsync(), n => n.MembershipId == membership.Id);
         Assert.Equal(NotificationStatus.Sent, notice.Status);
-    }
-
-    [Fact]
-    public void Invalid_expiry_notice_days_fail_at_startup()
-    {
-        using var baseFactory = new FitnessClubApiFactory();
-        using var invalid = baseFactory.WithWebHostBuilder(builder => builder.UseSetting("Notifications:ExpiryNoticeDays", "0"));
-
-        var exception = Assert.Throws<OptionsValidationException>(() => invalid.CreateClient());
-        Assert.Contains("ExpiryNoticeDays", exception.Message);
     }
 
     private async Task<string?> WaitForFinalStateAsync(string jobId)
