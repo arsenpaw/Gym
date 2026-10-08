@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using FitnessClub.IntegrationTests.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -23,7 +24,7 @@ public sealed class RealJwtApiFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Testing");
         builder.UseSetting("Auth0:Domain", Domain);
         builder.UseSetting("Auth0:Audience", Audience);
-        builder.UseSetting("Database:InMemoryName", $"jwt-{Guid.NewGuid()}");
+        builder.UseSetting("ConnectionStrings:FitnessClub", SqlServerFixture.NewDatabaseConnectionString());
 
         builder.ConfigureTestServices(services =>
             services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>

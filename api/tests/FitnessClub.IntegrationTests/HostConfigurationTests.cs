@@ -35,4 +35,14 @@ public class HostConfigurationTests(FitnessClubApiFactory factory) : IClassFixtu
         Assert.Contains("Domain", exception.Message);
         Assert.Contains("Audience", exception.Message);
     }
+
+    [Fact]
+    public void Invalid_expiry_notice_days_fail_at_startup()
+    {
+        using var baseFactory = new FitnessClubApiFactory();
+        using var invalid = baseFactory.WithWebHostBuilder(builder => builder.UseSetting("Notifications:ExpiryNoticeDays", "0"));
+
+        var exception = Assert.Throws<OptionsValidationException>(() => invalid.CreateClient());
+        Assert.Contains("ExpiryNoticeDays", exception.Message);
+    }
 }

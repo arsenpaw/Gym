@@ -1,5 +1,4 @@
 using FitnessClub.Domain.Clients;
-using FitnessClub.Domain.MembershipPlans;
 using FitnessClub.Domain.Notifications;
 using FitnessClub.Domain.Payments;
 using FitnessClub.Domain.SharedKernel;
@@ -13,7 +12,7 @@ public class NotificationRepositoryTests(FitnessClubApiFactory factory) : Persis
     public async Task Notification_round_trips_and_is_found_by_membership()
     {
         var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), null, Now);
-        var payment = client.PurchaseMembership(MembershipPlan.Create($"Plan {Guid.NewGuid():N}", Money.Of(800m), 30, null), Today, PaymentMethod.Cash, Now);
+        var payment = client.PurchaseMembership(await SavedPlanAsync(), Today, PaymentMethod.Cash, Now);
         var membership = client.Memberships.Single(m => m.Id == payment.MembershipId);
         var notification = Notification.MembershipExpiring(client, membership, Now);
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
