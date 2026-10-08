@@ -1,5 +1,6 @@
 import { isAxiosError } from 'axios';
 import { z } from 'zod';
+import { isWebPage } from './http';
 
 const ProblemDetails = z.object({
   title: z.string().nullish(),
@@ -8,6 +9,7 @@ const ProblemDetails = z.object({
 });
 
 const GENERIC = 'Something went wrong. Please try again.';
+const UNEXPECTED = 'The server sent an unexpected response. Please try again later.';
 
 const statusMessages: Record<number, string> = {
   401: 'Your session has expired. Please sign in again.',
@@ -25,5 +27,5 @@ export const problemMessage = (error: unknown): string => {
   const problem = parsed.success ? parsed.data : undefined;
   const fieldErrors = Object.values(problem?.errors ?? {}).flat();
   if (fieldErrors.length > 0) return fieldErrors.join(' ');
-  return problem?.detail ?? statusMessages[status] ?? problem?.title ?? GENERIC;
+  return problem?.detail ?? statusMessages[status] ?? problem?.title ?? (isWebPage(error.response) ? UNEXPECTED : GENERIC);
 };
