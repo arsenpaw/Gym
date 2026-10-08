@@ -29,11 +29,32 @@ public class HostConfigurationTests(FitnessClubApiFactory factory) : IClassFixtu
             builder.UseEnvironment("Testing");
             builder.UseSetting("Auth0:Domain", "");
             builder.UseSetting("Auth0:Audience", "");
+            builder.UseSetting("ConnectionStrings:FitnessClub", SqlServerFixture.NewDatabaseConnectionString());
         });
 
         var exception = Assert.Throws<OptionsValidationException>(() => unconfigured.CreateClient());
         Assert.Contains("Domain", exception.Message);
         Assert.Contains("Audience", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Missing_connection_string_fails_at_startup(string connectionString)
+    {
+        using var unconfigured = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Testing");
+            builder.UseSetting("Auth0:Domain", "test.invalid");
+            builder.UseSetting("Auth0:Audience", "https://api.test");
+            builder.UseSetting("ConnectionStrings:FitnessClub", connectionString);
+        });
+
+        var exception = Record.Exception(() => unconfigured.CreateClient());
+
+        Assert.NotNull(exception);
+        Assert.IsType<InvalidOperationException>(exception.GetBaseException());
+        Assert.Contains("ConnectionStrings:FitnessClub", exception.GetBaseException().Message);
     }
 
     [Fact]
