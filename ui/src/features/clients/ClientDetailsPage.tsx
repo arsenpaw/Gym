@@ -14,6 +14,7 @@ import {
 } from '../../api/generated/endpoints/clients/clients';
 import type { MembershipResponse } from '../../api/generated/model';
 import { problemMessage } from '../../api/problem';
+import { QueryErrorAlert } from '../../api/QueryErrorAlert';
 import { formatDate, formatDateTime, formatMoney } from '../../lib/format';
 import { ClientFormModal } from './ClientFormModal';
 import { MembershipBadge } from './MembershipBadge';
@@ -138,16 +139,20 @@ export const ClientDetailsPage = () => {
       </Card>
       <Card withBorder radius="md">
         <Title order={4} mb="sm">Visits</Title>
-        <DataTable
-          minHeight={120}
-          fetching={visits.isFetching}
-          records={visits.data ?? []}
-          noRecordsText="No visits yet"
-          columns={[
-            { accessor: 'checkedInAt', title: 'Checked in', render: (v) => formatDateTime(v.checkedInAt) },
-            { accessor: 'membershipId', title: 'Membership', render: (v) => planNames.get(v.membershipId) ?? '—' },
-          ]}
-        />
+        {visits.isError ? (
+          <QueryErrorAlert title="Could not load visits" error={visits.error} />
+        ) : (
+          <DataTable
+            minHeight={120}
+            fetching={visits.isFetching}
+            records={visits.data ?? []}
+            noRecordsText="No visits yet"
+            columns={[
+              { accessor: 'checkedInAt', title: 'Checked in', render: (v) => formatDateTime(v.checkedInAt) },
+              { accessor: 'membershipId', title: 'Membership', render: (v) => planNames.get(v.membershipId) ?? '—' },
+            ]}
+          />
+        )}
       </Card>
       <ClientFormModal opened={editOpened} onClose={edit.close} client={data} />
       <PurchaseMembershipModal opened={sellOpened} onClose={sell.close} clientId={data.id} />

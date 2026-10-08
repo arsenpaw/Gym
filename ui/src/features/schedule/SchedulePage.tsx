@@ -2,6 +2,7 @@ import { Badge, Button, Group, Paper, Select, Stack, Text, Title } from '@mantin
 import { IconPlus } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
 import { Calendar, Views, dayjsLocalizer, type EventProps, type View } from 'react-big-calendar';
+import { QueryErrorAlert } from '../../api/QueryErrorAlert';
 import { useRoomsList } from '../../api/generated/endpoints/rooms/rooms';
 import { useSessionsList, useSessionsMine } from '../../api/generated/endpoints/sessions/sessions';
 import { useTrainersList } from '../../api/generated/endpoints/trainers/trainers';
@@ -90,6 +91,7 @@ export const SchedulePage = () => {
           </Group>
         )}
       </Group>
+      {sessions.isError && <QueryErrorAlert title="Could not load sessions" error={sessions.error} />}
       <Paper withBorder p="md" radius="md">
         <Calendar
           localizer={localizer}
