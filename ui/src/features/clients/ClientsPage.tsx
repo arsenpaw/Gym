@@ -21,8 +21,8 @@ export const ClientsPage = () => {
         (client) =>
           query === '' ||
           client.fullName.toLowerCase().includes(query) ||
-          client.phone.replace(/\s/g, '').includes(query.replace(/\s/g, '')) ||
-          (client.email ?? '').toLowerCase().includes(query),
+          client.email.toLowerCase().includes(query) ||
+          (client.phone ?? '').replace(/\s/g, '').includes(query.replace(/\s/g, '')),
       ),
     [clients.data, query],
   );
@@ -34,7 +34,7 @@ export const ClientsPage = () => {
         <Button leftSection={<IconUserPlus size={16} />} onClick={form.open}>Register client</Button>
       </Group>
       <TextInput
-        placeholder="Search by name, phone or email"
+        placeholder="Search by name, email or phone"
         leftSection={<IconSearch size={16} />}
         value={search}
         onChange={(e) => setSearch(e.currentTarget.value)}
@@ -56,8 +56,8 @@ export const ClientsPage = () => {
           columns={[
             { accessor: 'fullName', title: 'Name' },
             { accessor: 'age', title: 'Age', textAlign: 'right' },
-            { accessor: 'phone', title: 'Phone' },
-            { accessor: 'email', title: 'Email', render: (client) => client.email ?? '—' },
+            { accessor: 'email', title: 'Email' },
+            { accessor: 'phone', title: 'Phone', render: (client) => client.phone ?? '—' },
             {
               accessor: 'activeMembership',
               title: 'Membership',

@@ -14,6 +14,7 @@ import { Role, hasAnyRole } from '../../auth/roles';
 import { useRoles } from '../../auth/useRoles';
 import dayjs from '../../lib/dayjs';
 import { formatDateTime, formatTimeRange } from '../../lib/format';
+import { clientOptionLabel } from '../clients/clientContact';
 import { invalidateSessions } from './invalidateSessions';
 
 export const SessionDrawer = ({ sessionId, onClose }: { sessionId: string | null; onClose: () => void }) => (
@@ -99,7 +100,7 @@ const SessionDetails = ({ sessionId }: { sessionId: string }) => {
                 placeholder="Find a client"
                 searchable
                 style={{ flex: 1 }}
-                data={(clients.data ?? []).filter((c) => !booked.has(c.id)).map((c) => ({ value: c.id, label: `${c.fullName} · ${c.phone}` }))}
+                data={(clients.data ?? []).filter((c) => !booked.has(c.id)).map((c) => ({ value: c.id, label: clientOptionLabel(c) }))}
                 value={clientToBook}
                 onChange={setClientToBook}
               />

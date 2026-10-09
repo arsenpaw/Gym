@@ -6,8 +6,8 @@ public sealed record ClientSummaryResponse(
     Guid Id,
     string FullName,
     int Age,
-    string Phone,
-    string? Email,
+    string Email,
+    string? Phone,
     ActiveMembershipResponse? ActiveMembership)
 {
     public static ClientSummaryResponse FromEntity(Client client, DateOnly today) =>
@@ -15,7 +15,7 @@ public sealed record ClientSummaryResponse(
             client.Id,
             client.Name.FullName,
             client.AgeOn(today),
-            client.Phone.Value,
-            client.Email?.Value,
+            client.Email.Value,
+            client.Phone?.Value,
             ActiveMembershipResponse.For(client, today));
 }

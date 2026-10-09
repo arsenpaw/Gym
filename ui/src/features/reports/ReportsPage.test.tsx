@@ -27,8 +27,8 @@ describe('ReportsPage', () => {
           from: query.get('From') ?? '',
           to: query.get('To') ?? '',
           clients: [
-            { clientId: ids.client, fullName: 'Shevchenko Olena', age: 31, phone: '+380671234567', activeMembership: null, visitCount: 12, lastVisitAt: dayjs().format() },
-            { clientId: ids.otherClient, fullName: 'Franko Ivan', age: 40, phone: '+380509998877', activeMembership: null, visitCount: 0, lastVisitAt: null },
+            { clientId: ids.client, fullName: 'Shevchenko Olena', age: 31, email: 'olena@example.com', phone: '+380671234567', activeMembership: null, visitCount: 12, lastVisitAt: dayjs().format() },
+            { clientId: ids.otherClient, fullName: 'Franko Ivan', age: 40, email: 'ivan@example.com', phone: null, activeMembership: null, visitCount: 0, lastVisitAt: null },
           ],
         };
       }),

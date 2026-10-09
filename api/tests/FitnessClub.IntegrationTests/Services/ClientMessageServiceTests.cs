@@ -82,15 +82,6 @@ public class ClientMessageServiceTests(FitnessClubApiFactory factory) : ServiceT
     }
 
     [Fact]
-    public async Task PreviewAsync_for_a_client_without_email_throws_domain_exception()
-    {
-        var client = await SeedClientAsync(email: null);
-
-        var exception = await Assert.ThrowsAsync<DomainException>(() => Service().PreviewAsync(client.Id, Request("Promotion"), Ct));
-        Assert.Equal("The client has no email address.", exception.Message);
-    }
-
-    [Fact]
     public async Task PreviewAsync_for_a_missing_client_throws_not_found()
     {
         await Assert.ThrowsAsync<NotFoundException>(() => Service().PreviewAsync(Guid.NewGuid(), Request("Promotion"), Ct));
@@ -143,16 +134,6 @@ public class ClientMessageServiceTests(FitnessClubApiFactory factory) : ServiceT
         await Service().SendAsync(client.Id, Request("Promotion"), Ct);
 
         Assert.Contains(validUntil, Assert.Single(_sender.Sent).HtmlBody);
-    }
-
-    [Fact]
-    public async Task SendAsync_for_a_client_without_email_saves_nothing()
-    {
-        var client = await SeedClientAsync(email: null);
-
-        await Assert.ThrowsAsync<DomainException>(() => Service().SendAsync(client.Id, Request("Promotion"), Ct));
-        Assert.Equal(0, UnitOfWork.SaveCount);
-        Assert.Empty(_sender.Sent);
     }
 
     [Fact]

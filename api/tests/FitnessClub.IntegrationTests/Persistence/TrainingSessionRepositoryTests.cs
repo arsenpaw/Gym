@@ -7,6 +7,7 @@ using FitnessClub.Domain.SharedKernel;
 using FitnessClub.Domain.Trainers;
 using FitnessClub.Domain.Training;
 using FitnessClub.IntegrationTests.Infrastructure;
+using FitnessClub.UnitTests.Domain;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessClub.IntegrationTests.Persistence;
@@ -32,7 +33,7 @@ public class TrainingSessionRepositoryTests(FitnessClubApiFactory factory) : Per
     public async Task Session_round_trips_with_slot_and_bookings()
     {
         var (trainer, room) = await SeedTrainerAndRoomAsync();
-        var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), null, Now);
+        var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), EmailAddress.Create(TestData.UniqueEmail()), PhoneNumber.Create(UniquePhone()), Now);
         client.PurchaseMembership(await SavedPlanAsync(), Today, PaymentMethod.Cash, Now);
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
 
@@ -81,7 +82,7 @@ public class TrainingSessionRepositoryTests(FitnessClubApiFactory factory) : Per
 
     private async Task<Client> SeedClientWithMembershipAsync()
     {
-        var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), null, Now);
+        var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), EmailAddress.Create(TestData.UniqueEmail()), PhoneNumber.Create(UniquePhone()), Now);
         client.PurchaseMembership(await SavedPlanAsync(), Today, PaymentMethod.Cash, Now);
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
         return client;

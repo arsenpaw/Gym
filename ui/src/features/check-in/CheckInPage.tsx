@@ -8,6 +8,7 @@ import { QueryErrorAlert } from '../../api/QueryErrorAlert';
 import { useClientsCheckIn, useClientsList } from '../../api/generated/endpoints/clients/clients';
 import type { VisitResponse } from '../../api/generated/model';
 import { formatTime } from '../../lib/format';
+import { clientContacts, clientOptionLabel } from '../clients/clientContact';
 import { MembershipBadge } from '../clients/MembershipBadge';
 import { refreshClient } from '../clients/refreshClient';
 
@@ -33,13 +34,13 @@ export const CheckInPage = () => {
       <Title order={2}>Check-in</Title>
       <Select
         label="Client"
-        placeholder="Start typing a name or phone"
+        placeholder="Start typing a name, email or phone"
         size="lg"
         searchable
         clearable
         leftSection={<IconSearch size={18} />}
         nothingFoundMessage="No clients found"
-        data={(clients.data ?? []).map((c) => ({ value: c.id, label: `${c.fullName} · ${c.phone}` }))}
+        data={(clients.data ?? []).map((c) => ({ value: c.id, label: clientOptionLabel(c) }))}
         value={clientId}
         onChange={(value) => {
           setClientId(value);
@@ -52,7 +53,7 @@ export const CheckInPage = () => {
           <Group justify="space-between" align="flex-start">
             <div>
               <Text fw={600} size="lg">{client.fullName}</Text>
-              <Text c="dimmed" size="sm">{client.phone} · {client.age} years</Text>
+              <Text c="dimmed" size="sm">{clientContacts(client)} · {client.age} years</Text>
             </div>
             <MembershipBadge membership={client.activeMembership} />
           </Group>

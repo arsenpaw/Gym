@@ -32,11 +32,22 @@ dotnet run --project src/FitnessClub.Api                      # http://localhost
 - **Running locally needs SQL Server:** start `db` from compose and set `ConnectionStrings:FitnessClub` (see "Persistence"). Without it, startup fails with `InvalidOperationException` naming the setting.
 - **Filters need `--project`.** Filters like `--filter-class` and `--filter-method` only work together with `--project`. Run against the whole solution, the test project with no matching tests fails with "zero tests ran".
 - **Development URLs:** `/scalar` and `/swagger` (API docs; use **Authorize** to paste an Auth0 access token), `/openapi/v1.json`, `/hangfire` (from your own machine only), `/health`.
-- **Running locally needs Auth0 settings,** otherwise startup fails with `OptionsValidationException`:
+- **Running locally needs Auth0 settings,** otherwise startup fails with `OptionsValidationException`. They live in `src/FitnessClub.Api/appsettings.Development.json`, which is gitignored, so create it on a fresh clone:
 
-```sh
-dotnet user-secrets --project src/FitnessClub.Api set "Auth0:Domain" "<tenant>.eu.auth0.com"
-dotnet user-secrets --project src/FitnessClub.Api set "Auth0:Audience" "https://api.fitnessclub"
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "Auth0": {
+    "Domain": "<tenant>.eu.auth0.com",
+    "Audience": "https://api.fitnessclub",
+    "RolesClaim": "https://fitnessclub/roles"
+  }
+}
 ```
 
 ## Layout

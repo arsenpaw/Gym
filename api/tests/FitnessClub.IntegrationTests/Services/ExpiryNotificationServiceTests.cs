@@ -64,15 +64,6 @@ public class ExpiryNotificationServiceTests(FitnessClubApiFactory factory) : Ser
         Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
-    [Fact]
-    public async Task CreateDueNoticesAsync_skips_a_client_without_email()
-    {
-        await ClientWithMembershipEndingInAsync(2, email: null);
-
-        Assert.Equal(0, await Service().CreateDueNoticesAsync(Ct));
-        Assert.Empty(await AllNotificationsAsync());
-    }
-
     [Theory]
     [InlineData(0)]
     [InlineData(7)]

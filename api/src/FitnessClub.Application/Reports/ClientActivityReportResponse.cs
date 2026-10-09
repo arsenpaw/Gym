@@ -6,7 +6,8 @@ public sealed record ClientActivityItem(
     Guid ClientId,
     string FullName,
     int Age,
-    string Phone,
+    string Email,
+    string? Phone,
     ActiveMembershipSummary? ActiveMembership,
     int VisitCount,
     DateTimeOffset? LastVisitAt);

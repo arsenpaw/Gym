@@ -12,7 +12,13 @@ internal static class ValueConversions
     public static PropertyBuilder<PhoneNumber> HasPhoneConversion(this PropertyBuilder<PhoneNumber> property) =>
         property.HasConversion(phone => phone.Value, value => PhoneNumber.Create(value)).HasMaxLength(PhoneNumber.MaxLength);
 
-    public static PropertyBuilder<EmailAddress?> HasEmailConversion(this PropertyBuilder<EmailAddress?> property) =>
+    public static PropertyBuilder<PhoneNumber?> HasOptionalPhoneConversion(this PropertyBuilder<PhoneNumber?> property) =>
+        property.HasConversion(phone => phone!.Value, value => PhoneNumber.Create(value)).HasMaxLength(PhoneNumber.MaxLength);
+
+    public static PropertyBuilder<EmailAddress> HasEmailConversion(this PropertyBuilder<EmailAddress> property) =>
+        property.HasConversion(email => email.Value, value => EmailAddress.Create(value)).HasMaxLength(EmailAddress.MaxLength);
+
+    public static PropertyBuilder<EmailAddress?> HasOptionalEmailConversion(this PropertyBuilder<EmailAddress?> property) =>
         property.HasConversion(email => email!.Value, value => EmailAddress.Create(value)).HasMaxLength(EmailAddress.MaxLength);
 
     public static void OwnsPersonName<TOwner>(this EntityTypeBuilder<TOwner> builder, System.Linq.Expressions.Expression<Func<TOwner, PersonName?>> navigation)

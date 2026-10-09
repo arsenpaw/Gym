@@ -15,7 +15,7 @@ One run = **create due notices**, then **send pending notices**.
 1. **Create** (`IExpiryNotificationService.CreateDueNoticesAsync`)
    - `now = TimeProvider.GetLocalNow()`, `today` = its date (club-local).
    - Window: memberships ending from `today` to `today + ExpiryNoticeDays`, both inclusive.
-   - Loads candidates with `IClientRepository.ListWithMembershipsEndingBetweenAsync`, then asks each client for `MembershipsNeedingExpiryNotice(today, endsBy)`. That already skips clients without an email address and renewed, cancelled, ended and used-up memberships.
+   - Loads candidates with `IClientRepository.ListWithMembershipsEndingBetweenAsync`, then asks each client for `MembershipsNeedingExpiryNotice(today, endsBy)`. That already skips renewed, cancelled, ended and used-up memberships.
    - The service narrows further: a membership whose whole validity is no longer than the window (`EndsOn − StartsOn < ExpiryNoticeDays`) gets no notice. This drops single-visit passes and memberships that haven't started yet, which would otherwise be "warned" on the day they were bought.
    - Skips a membership that already has a `MembershipExpiring` notice (`INotificationRepository.ExistsForMembershipAsync`). Runs are idempotent.
    - Adds `Notification.MembershipExpiring(client, membership, content, now)` for the rest, with the content from the expiry reminder template (`IEmailTemplates.ExpiryReminder`), and saves once.
@@ -62,7 +62,7 @@ All under `api/notifications`, role **Admin** (401 without a user, 403 for other
 "SendGrid": { "ApiKey": "", "FromAddress": "", "FromName": "Fitness Club" }
 ```
 
-- **Email only.** `Client.NeedsExpiryNotice` requires an email address, so new notices are always on the `Email` channel. `NotificationChannel.Sms` stays in the enum for older rows (the seeded history has some).
+- **Email only.** Every client has an email address (required since [[2026-10-09-client-contacts-and-page-design]]), so new notices are always on the `Email` channel. `NotificationChannel.Sms` stays in the enum for older rows (the seeded history has some).
 - **Choosing the sender.** `AddInfrastructure()` registers `SendGridNotificationSender` (typed `HttpClient`) when `SendGrid:ApiKey` is set and `LoggingNotificationSender` otherwise. `FromAddress` is required once `ApiKey` is set, checked at startup, and must be a verified sender in SendGrid.
 - **Deploy.** `deploy/docker-compose.yml` passes `SENDGRID_*` variables, all optional (an empty `SENDGRID_API_KEY` means log only). `deploy/docker-compose.server.yml` requires them.
 
@@ -70,13 +70,13 @@ The job has no schedule (`Cron.Never()`, fixed in code). To run it daily again, 
 
 ## Tests
 
-- **Unit** (`ExpiryNotificationServiceTests`, fakes only): window edges and configured window, clients without email skipped, no duplicates across runs, renewed / cancelled / short or not-started passes skipped, send success and failure with the run continuing, retry, list filter, run.
+- **Unit** (`ExpiryNotificationServiceTests`, fakes only): window edges and configured window, no duplicates across runs, renewed / cancelled / short or not-started passes skipped, send success and failure with the run continuing, retry, list filter, run.
 - **Integration** (`Notifications/`): HTTP list / filter / retry / run, 400 / 401 / 403 / 404 cases; startup registers the recurring job with `Cron.Never()`; triggering the job through Hangfire creates and sends a notice; an invalid `ExpiryNoticeDays` fails startup; the sender is `LoggingNotificationSender` without a SendGrid API key and `SendGridNotificationSender` with one, and a key without `FromAddress` fails startup.
 - **SendGrid** (`SendGridNotificationSenderTests`): a stub `HttpMessageHandler` checks the URL, bearer key, from, to, subject and both content parts; text only when there is no HTML; a non-2xx response throws with SendGrid's reason.
 
 ## Known gaps
 
-- No SMS channel. Clients without an email address get no expiry notice. An SMS provider would be another `INotificationSender` plus restoring the SMS fallback in `Notification.MembershipExpiring`.
+- No SMS channel. Email is required, so every client can get the notice. An SMS provider would be another `INotificationSender` plus restoring the SMS fallback in `Notification.MembershipExpiring`.
 - A retried older `Sms` notice fails again with the SendGrid sender.
 - Each notice is one API call. That is fine for a few notices a day, but bulk sending should use SendGrid's batch personalizations.
 - `POST /run` and the Hangfire job can overlap: `[DisableConcurrentExecution]` only guards job runs. Overlap at worst sends a notice twice, or one run gets a 409 on a stale `Version`.

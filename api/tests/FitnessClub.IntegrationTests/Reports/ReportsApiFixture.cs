@@ -3,6 +3,7 @@ using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.MembershipPlans;
 using FitnessClub.Domain.SharedKernel;
 using FitnessClub.IntegrationTests.Infrastructure;
+using FitnessClub.UnitTests.Domain;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,7 +54,7 @@ public sealed class ReportsApiFixture : IAsyncDisposable
         MembershipPlan.Create($"Plan {Guid.NewGuid():N}", Money.Of(price), validityDays, null);
 
     public static Client NewClient(string lastName, string firstName, DateOnly dateOfBirth, DateTimeOffset registeredAt) =>
-        Client.Register(PersonName.Create(firstName, lastName, null), dateOfBirth, PhoneNumber.Create(UniquePhone()), null, registeredAt);
+        Client.Register(PersonName.Create(firstName, lastName, null), dateOfBirth, EmailAddress.Create(TestData.UniqueEmail()), PhoneNumber.Create(UniquePhone()), registeredAt);
 
     public static string UniquePhone() => $"+380{Random.Shared.NextInt64(100_000_000, 999_999_999)}";
 

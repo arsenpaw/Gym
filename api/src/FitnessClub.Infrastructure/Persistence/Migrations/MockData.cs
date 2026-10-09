@@ -113,7 +113,7 @@ internal sealed class MockData
         Sell(maksym, monthly, -57, visitEvery: 4);
         Sell(maksym, monthly, -27, visitEvery: 3);
 
-        var anastasiia = AddClient("Anastasiia", "Moroz", "Serhiivna", new(1979, 9, 8), "+380501230005", null, -26);
+        var anastasiia = AddClient("Anastasiia", "Moroz", "Serhiivna", new(1979, 9, 8), "+380501230005", "anastasiia.moroz@example.com", -26);
         Sell(anastasiia, monthly12, -25, visitEvery: 4);
 
         var yurii = AddClient("Yurii", "Lysenko", null, new(1990, 12, 30), "+380501230006", "yurii.lysenko@example.com", -40);
@@ -123,7 +123,7 @@ internal sealed class MockData
         var kateryna = AddClient("Kateryna", "Savchenko", null, new(1985, 4, 19), "+380501230007", "kateryna.savchenko@example.com", -63);
         Sell(kateryna, quarterly, -60, visitEvery: 3);
 
-        var vladyslav = AddClient("Vladyslav", "Rudenko", null, new(2004, 8, 3), "+380501230008", null, -42);
+        var vladyslav = AddClient("Vladyslav", "Rudenko", null, new(2004, 8, 3), "+380501230008", "vladyslav.rudenko@example.com", -42);
         Sell(vladyslav, single, -40, visitEvery: 1);
         Sell(vladyslav, single, -17, visitEvery: 1);
         Sell(vladyslav, single, -3, visitEvery: 1);
@@ -147,7 +147,7 @@ internal sealed class MockData
         var daria = AddClient("Daria", "Kozak", null, new(2000, 12, 1), "+380501230013", "daria.kozak@example.com", -6);
         Sell(daria, monthly, -5, visitEvery: 2);
 
-        var artem = AddClient("Artem", "Kushnir", null, new(1999, 3, 28), "+380501230014", null, -25);
+        var artem = AddClient("Artem", "Kushnir", null, new(1999, 3, 28), "+380501230014", "artem.kushnir@example.com", -25);
         Sell(artem, monthly12, -24, visitEvery: 2);
 
         var yuliia = AddClient("Yuliia", "Tymoshenko", "Andriivna", new(1992, 9, 15), "+380501230015", "yuliia.tymoshenko@example.com", -118);
@@ -155,7 +155,7 @@ internal sealed class MockData
             Sell(yuliia, monthly, 6 - 29 - 30 * month, visitEvery: 3);
         Sell(yuliia, monthly, 7, visitEvery: 3);
 
-        var ihor = AddClient("Ihor", "Zakharchenko", null, new(1968, 1, 11), "+380501230016", null, -52);
+        var ihor = AddClient("Ihor", "Zakharchenko", null, new(1968, 1, 11), "+380501230016", "ihor.zakharchenko@example.com", -52);
         var ihorMembership = Sell(ihor, monthly, -49, visitEvery: 6);
         AddNotification(ihor, ihorMembership, NotificationOutcome.Failed, -26);
 
@@ -220,7 +220,7 @@ internal sealed class MockData
     }
 
     private Person AddClient(
-        string firstName, string lastName, string? middleName, DateOnly dateOfBirth, string phone, string? email, int registeredOnDay)
+        string firstName, string lastName, string? middleName, DateOnly dateOfBirth, string phone, string email, int registeredOnDay)
     {
         var person = new Person(NextId(IdKind.Client), firstName, phone, email, Earlier(At(_today.AddDays(registeredOnDay), 10, 15)));
         _clients.Add([person.Id, firstName, lastName, middleName, dateOfBirth, phone, email, person.RegisteredAt, Guid.NewGuid()]);
@@ -268,13 +268,13 @@ internal sealed class MockData
         _notifications.Add(
         [
             NextId(IdKind.Notification), client.Id, membership.Id, "MembershipExpiring",
-            client.Email is null ? "Sms" : "Email",
-            client.Email ?? client.Phone,
+            "Email",
+            client.Email,
             $"Dear {client.FirstName}, your membership '{membership.PlanName}' expires on {endsOn}.",
             outcome.ToString(),
             createdAt,
             outcome == NotificationOutcome.Sent ? createdAt.AddMinutes(1) : null,
-            outcome == NotificationOutcome.Failed ? "SMS gateway did not respond in time." : null,
+            outcome == NotificationOutcome.Failed ? "The email provider did not respond in time." : null,
             Guid.NewGuid(),
         ]);
     }
@@ -362,7 +362,7 @@ internal sealed class MockData
 
     private sealed record Plan(Guid Id, string Name, decimal Price, int ValidityDays, int? VisitLimit);
 
-    private sealed record Person(Guid Id, string FirstName, string Phone, string? Email, DateTimeOffset RegisteredAt);
+    private sealed record Person(Guid Id, string FirstName, string Phone, string Email, DateTimeOffset RegisteredAt);
 
     private sealed record Sold(Guid Id, string PlanName, DateOnly EndsOn);
 

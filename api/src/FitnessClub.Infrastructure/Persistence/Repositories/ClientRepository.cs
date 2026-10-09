@@ -9,8 +9,8 @@ internal sealed class ClientRepository(FitnessClubDbContext db) : Repository<Cli
     public async Task<IReadOnlyList<Client>> ListAsync(CancellationToken cancellationToken) =>
         await Set.OrderBy(c => c.Name.LastName).ThenBy(c => c.Name.FirstName).ToListAsync(cancellationToken);
 
-    public Task<bool> PhoneExistsAsync(PhoneNumber phone, Guid? excludeId, CancellationToken cancellationToken) =>
-        Set.AnyAsync(c => c.Id != excludeId && c.Phone == phone, cancellationToken);
+    public Task<bool> EmailExistsAsync(EmailAddress email, Guid? excludeId, CancellationToken cancellationToken) =>
+        Set.AnyAsync(c => c.Id != excludeId && c.Email == email, cancellationToken);
 
     public async Task<IReadOnlyList<Client>> ListWithMembershipsEndingBetweenAsync(
         DateOnly from, DateOnly to, CancellationToken cancellationToken) =>

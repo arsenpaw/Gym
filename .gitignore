@@ -13,6 +13,7 @@ dist/
 # Secrets
 deploy/.env
 deploy/.env.server
+api/src/FitnessClub.Api/appsettings.Development.json
 
 # Obsidian per-device state
 docs/.obsidian/workspace*.json

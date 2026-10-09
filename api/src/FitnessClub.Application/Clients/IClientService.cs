@@ -16,5 +16,5 @@ public interface IClientService
 
     Task<VisitResponse> CheckInAsync(Guid id, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<VisitResponse>> ListVisitsAsync(Guid id, CancellationToken cancellationToken);
+    Task<VisitPageResponse> ListVisitsAsync(Guid id, VisitPageQuery query, CancellationToken cancellationToken);
 }

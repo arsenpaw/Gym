@@ -6,6 +6,7 @@ using FitnessClub.Application.Trainers;
 using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.SharedKernel;
 using FitnessClub.IntegrationTests.Infrastructure;
+using FitnessClub.UnitTests.Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -38,7 +39,7 @@ public class TrainersEndpointsTests(FitnessClubApiFactory factory) : IClassFixtu
         await using var scope = factory.Services.CreateAsyncScope();
         var now = scope.ServiceProvider.GetRequiredService<TimeProvider>().GetLocalNow();
         var client = Client.Register(
-            PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), null, now);
+            PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), EmailAddress.Create(TestData.UniqueEmail()), PhoneNumber.Create(UniquePhone()), now);
         scope.ServiceProvider.GetRequiredService<IClientRepository>().Add(client);
         await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync(Ct);
         return client.Id;

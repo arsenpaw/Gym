@@ -14,9 +14,9 @@ internal sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.Property(c => c.Id).ValueGeneratedNever();
         builder.OwnsPersonName(c => c.Name);
         builder.Navigation(c => c.Name).IsRequired();
-        builder.Property(c => c.Phone).HasPhoneConversion().IsRequired();
-        builder.HasIndex(c => c.Phone).IsUnique();
-        builder.Property(c => c.Email).HasEmailConversion();
+        builder.Property(c => c.Email).HasEmailConversion().IsRequired();
+        builder.HasIndex(c => c.Email).IsUnique();
+        builder.Property(c => c.Phone).HasOptionalPhoneConversion();
 
         builder.OwnsMany(c => c.Memberships, membership =>
         {

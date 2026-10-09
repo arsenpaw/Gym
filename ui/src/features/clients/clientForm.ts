@@ -9,7 +9,7 @@ import {
   clientsRegisterBodyPhoneMax,
 } from '../../api/generated/zod/clients/clients.zod';
 import dayjs from '../../lib/dayjs';
-import { nullIfEmpty, optionalEmail, optionalText, phoneNumber, requiredText } from '../../lib/formSchemas';
+import { nullIfEmpty, optionalPhone, optionalText, requiredEmail, requiredText } from '../../lib/formSchemas';
 
 export const clientFormSchema = ClientsRegisterBody.extend({
   firstName: requiredText('First name', clientsRegisterBodyFirstNameMax),
@@ -19,8 +19,8 @@ export const clientFormSchema = ClientsRegisterBody.extend({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a full date of birth')
     .refine((value) => !dayjs(value).isAfter(dayjs(), 'day'), 'Date of birth cannot be in the future'),
-  phone: phoneNumber(clientsRegisterBodyPhoneMax),
-  email: optionalEmail(clientsRegisterBodyEmailMax),
+  email: requiredEmail(clientsRegisterBodyEmailMax),
+  phone: optionalPhone(clientsRegisterBodyPhoneMax),
 });
 
 export type ClientFormValues = z.infer<typeof clientFormSchema>;
@@ -30,8 +30,8 @@ export const clientFormDefaults = (client?: ClientDetailsResponse): ClientFormVa
   lastName: client?.lastName ?? '',
   middleName: client?.middleName ?? '',
   dateOfBirth: client?.dateOfBirth ?? '',
-  phone: client?.phone ?? '',
   email: client?.email ?? '',
+  phone: client?.phone ?? '',
 });
 
 export const toClientRequest = (values: ClientFormValues): ClientRequest => ({
@@ -39,6 +39,6 @@ export const toClientRequest = (values: ClientFormValues): ClientRequest => ({
   lastName: values.lastName,
   middleName: nullIfEmpty(values.middleName),
   dateOfBirth: values.dateOfBirth,
-  phone: values.phone,
-  email: nullIfEmpty(values.email),
+  email: values.email,
+  phone: nullIfEmpty(values.phone),
 });

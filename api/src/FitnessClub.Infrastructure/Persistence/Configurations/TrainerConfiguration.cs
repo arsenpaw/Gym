@@ -16,7 +16,7 @@ internal sealed class TrainerConfiguration : IEntityTypeConfiguration<Trainer>
         builder.Navigation(t => t.Name).IsRequired();
         builder.Property(t => t.Phone).HasPhoneConversion().IsRequired();
         builder.HasIndex(t => t.Phone).IsUnique();
-        builder.Property(t => t.Email).HasEmailConversion();
+        builder.Property(t => t.Email).HasOptionalEmailConversion();
         builder.Property(t => t.Specialization).HasMaxLength(Trainer.SpecializationMaxLength).IsRequired();
         builder.Property(t => t.IdentityUserId).HasMaxLength(Trainer.IdentityUserIdMaxLength);
         builder.HasIndex(t => t.IdentityUserId).IsUnique().HasFilter("[IdentityUserId] IS NOT NULL");

@@ -7,7 +7,7 @@ public interface IClientRepository : IRepository<Client>
 {
     Task<IReadOnlyList<Client>> ListAsync(CancellationToken cancellationToken);
 
-    Task<bool> PhoneExistsAsync(PhoneNumber phone, Guid? excludeId, CancellationToken cancellationToken);
+    Task<bool> EmailExistsAsync(EmailAddress email, Guid? excludeId, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<Client>> ListWithMembershipsEndingBetweenAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken);
 }

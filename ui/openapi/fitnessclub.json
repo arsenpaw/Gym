@@ -498,6 +498,26 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "maximum": 2147483647,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
           }
         ],
         "responses": {
@@ -506,26 +526,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/VisitResponse"
-                  }
+                  "$ref": "#/components/schemas/VisitPageResponse"
                 }
               },
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/VisitResponse"
-                  }
+                  "$ref": "#/components/schemas/VisitPageResponse"
                 }
               },
               "text/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/VisitResponse"
-                  }
+                  "$ref": "#/components/schemas/VisitPageResponse"
                 }
               }
             }
@@ -2131,6 +2142,7 @@
           "clientId",
           "fullName",
           "age",
+          "email",
           "phone",
           "activeMembership",
           "visitCount",
@@ -2149,8 +2161,14 @@
             "type": "integer",
             "format": "int32"
           },
-          "phone": {
+          "email": {
             "type": "string"
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "activeMembership": {
             "oneOf": [
@@ -2208,8 +2226,8 @@
           "fullName",
           "dateOfBirth",
           "age",
-          "phone",
           "email",
+          "phone",
           "registeredAt",
           "activeMembership",
           "memberships"
@@ -2243,10 +2261,10 @@
             "type": "integer",
             "format": "int32"
           },
-          "phone": {
+          "email": {
             "type": "string"
           },
-          "email": {
+          "phone": {
             "type": [
               "null",
               "string"
@@ -2317,7 +2335,7 @@
           "firstName",
           "lastName",
           "dateOfBirth",
-          "phone"
+          "email"
         ],
         "type": "object",
         "properties": {
@@ -2346,13 +2364,13 @@
             ],
             "format": "date"
           },
-          "phone": {
-            "maxLength": 32,
+          "email": {
+            "maxLength": 254,
             "minLength": 0,
             "type": "string"
           },
-          "email": {
-            "maxLength": 254,
+          "phone": {
+            "maxLength": 32,
             "minLength": 0,
             "type": [
               "null",
@@ -2366,8 +2384,8 @@
           "id",
           "fullName",
           "age",
-          "phone",
           "email",
+          "phone",
           "activeMembership"
         ],
         "type": "object",
@@ -2383,10 +2401,10 @@
             "type": "integer",
             "format": "int32"
           },
-          "phone": {
+          "email": {
             "type": "string"
           },
-          "email": {
+          "phone": {
             "type": [
               "null",
               "string"
@@ -3323,6 +3341,25 @@
           },
           "isActive": {
             "type": "boolean"
+          }
+        }
+      },
+      "VisitPageResponse": {
+        "required": [
+          "items",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VisitResponse"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

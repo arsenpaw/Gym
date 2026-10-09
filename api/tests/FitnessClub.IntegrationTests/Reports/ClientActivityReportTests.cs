@@ -72,7 +72,8 @@ public class ClientActivityReportTests(ReportsApiFixture fixture) : IClassFixtur
         var activeRow = rows[0];
         Assert.Equal("Avramenko Anna", activeRow.FullName);
         Assert.Equal(35, activeRow.Age);
-        Assert.Equal(active.Phone.Value, activeRow.Phone);
+        Assert.Equal(active.Email.Value, activeRow.Email);
+        Assert.Equal(active.Phone!.Value, activeRow.Phone);
         Assert.NotNull(activeRow.ActiveMembership);
         Assert.Equal(longPlan.Name, activeRow.ActiveMembership.PlanName);
         Assert.Equal(new DateOnly(2026, 8, 25), activeRow.ActiveMembership.StartsOn);

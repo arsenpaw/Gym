@@ -133,7 +133,7 @@ The services check name uniqueness in code, because the InMemory provider doesn'
 
   The role names are string constants in `Roles` (Application). Clients don't log in. The requirements don't call for a client portal.
 - **Locked by default:** a fallback policy requires a logged-in user everywhere. Each controller or action adds `[Authorize(Roles = ...)]`. The only public routes are `/health` and, in Development, the OpenAPI document and docs page.
-- **Settings:** `Auth0:Domain` and `Auth0:Audience` come from `dotnet user-secrets` locally and environment variables in Docker. They're never committed.
+- **Settings:** `Auth0:Domain` and `Auth0:Audience` come from `appsettings.Development.json` locally (gitignored) and environment variables in Docker. They're never committed.
 - **One-time Auth0 setup** (done by you, written up in `api/CLAUDE.md`):
   1. Create an API whose identifier is the audience, and turn on RBAC.
   2. Create the roles `Admin`, `Receptionist` and `Trainer`.

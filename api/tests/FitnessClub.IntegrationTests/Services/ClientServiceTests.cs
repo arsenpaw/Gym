@@ -31,16 +31,16 @@ public class ClientServiceTests : ServiceTestBase
     private static ClientRequest Request(
         string firstName = "Olena",
         string lastName = "Shevchenko",
-        string phone = "+380671234567",
-        string? email = null,
+        string email = "olena@example.com",
+        string? phone = "+380671234567",
         DateOnly? dateOfBirth = null) =>
         new()
         {
             FirstName = firstName,
             LastName = lastName,
             DateOfBirth = dateOfBirth ?? new DateOnly(1995, 3, 14),
-            Phone = phone,
             Email = email,
+            Phone = phone,
         };
 
     private Task<IReadOnlyList<Payment>> AllPaymentsAsync() =>
@@ -65,20 +65,37 @@ public class ClientServiceTests : ServiceTestBase
     }
 
     [Fact]
-    public async Task RegisterAsync_with_blank_email_stores_no_email()
+    public async Task RegisterAsync_with_blank_phone_stores_no_phone()
     {
-        var created = await _service.RegisterAsync(Request(email: "  "), Ct);
+        var created = await _service.RegisterAsync(Request(phone: "  "), Ct);
 
-        Assert.Null(created.Email);
+        Assert.Null(created.Phone);
     }
 
     [Fact]
-    public async Task RegisterAsync_with_same_phone_in_another_format_throws_conflict_and_does_not_save()
+    public async Task RegisterAsync_with_blank_email_throws_domain_exception()
     {
-        await _service.RegisterAsync(Request(phone: "+380671234567"), Ct);
+        await Assert.ThrowsAsync<DomainException>(() => _service.RegisterAsync(Request(email: "  "), Ct));
+        Assert.Equal(0, UnitOfWork.SaveCount);
+    }
 
-        await Assert.ThrowsAsync<ConflictException>(() => _service.RegisterAsync(Request(phone: "+38 (067) 123-45-67"), Ct));
+    [Fact]
+    public async Task RegisterAsync_with_same_email_in_another_case_throws_conflict_and_does_not_save()
+    {
+        await _service.RegisterAsync(Request(email: "olena@example.com"), Ct);
+
+        await Assert.ThrowsAsync<ConflictException>(() => _service.RegisterAsync(Request(email: "Olena@Example.com"), Ct));
         Assert.Equal(1, UnitOfWork.SaveCount);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_allows_a_phone_another_client_already_has()
+    {
+        await _service.RegisterAsync(Request(email: "olena@example.com", phone: "+380671234567"), Ct);
+
+        var second = await _service.RegisterAsync(Request(email: "ivan@example.com", phone: "+38 (067) 123-45-67"), Ct);
+
+        Assert.Equal("+380671234567", second.Phone);
     }
 
     [Fact]
@@ -102,26 +119,27 @@ public class ClientServiceTests : ServiceTestBase
     }
 
     [Fact]
-    public async Task UpdateAsync_keeping_own_phone_succeeds()
+    public async Task UpdateAsync_keeping_own_email_succeeds()
     {
         var created = await _service.RegisterAsync(Request(), Ct);
 
-        var updated = await _service.UpdateAsync(created.Id, Request(firstName: "Oksana", email: "oksana@example.com"), Ct);
+        var updated = await _service.UpdateAsync(created.Id, Request(firstName: "Oksana", phone: null), Ct);
 
         Assert.Equal("Shevchenko Oksana", updated.FullName);
-        Assert.Equal("oksana@example.com", updated.Email);
+        Assert.Equal("olena@example.com", updated.Email);
+        Assert.Null(updated.Phone);
         Assert.Equal(2, UnitOfWork.SaveCount);
     }
 
     [Fact]
-    public async Task UpdateAsync_to_another_clients_phone_throws_conflict()
+    public async Task UpdateAsync_to_another_clients_email_throws_conflict()
     {
-        await _service.RegisterAsync(Request(phone: "+380671234567"), Ct);
-        var other = await _service.RegisterAsync(Request(phone: "+380501112233"), Ct);
+        await _service.RegisterAsync(Request(email: "olena@example.com"), Ct);
+        var other = await _service.RegisterAsync(Request(email: "ivan@example.com"), Ct);
 
-        await Assert.ThrowsAsync<ConflictException>(() => _service.UpdateAsync(other.Id, Request(phone: "+380671234567"), Ct));
+        await Assert.ThrowsAsync<ConflictException>(() => _service.UpdateAsync(other.Id, Request(email: "olena@example.com"), Ct));
 
-        Assert.Equal("+380501112233", (await _service.GetAsync(other.Id, Ct)).Phone);
+        Assert.Equal("ivan@example.com", (await _service.GetAsync(other.Id, Ct)).Email);
         Assert.Equal(2, UnitOfWork.SaveCount);
     }
 
@@ -255,7 +273,7 @@ public class ClientServiceTests : ServiceTestBase
         Assert.Equal(client.Id, visit.ClientId);
         Assert.Equal(membership.Id, visit.MembershipId);
         Assert.Equal(Now, visit.CheckedInAt);
-        Assert.Single(await _visits.ListForClientAsync(client.Id, Ct));
+        Assert.Single(await _visits.ListForClientAsync(client.Id, 0, 10, Ct));
         Assert.Equal(7, (await _service.GetAsync(client.Id, Ct)).ActiveMembership?.VisitsLeft);
         Assert.Equal(3, UnitOfWork.SaveCount);
     }
@@ -266,7 +284,7 @@ public class ClientServiceTests : ServiceTestBase
         var client = await _service.RegisterAsync(Request(), Ct);
 
         await Assert.ThrowsAsync<DomainException>(() => _service.CheckInAsync(client.Id, Ct));
-        Assert.Empty(await _visits.ListForClientAsync(client.Id, Ct));
+        Assert.Empty(await _visits.ListForClientAsync(client.Id, 0, 10, Ct));
         Assert.Equal(1, UnitOfWork.SaveCount);
     }
 
@@ -279,7 +297,7 @@ public class ClientServiceTests : ServiceTestBase
         _time.Advance(TimeSpan.FromHours(3));
 
         await Assert.ThrowsAsync<DomainException>(() => _service.CheckInAsync(client.Id, Ct));
-        Assert.Single(await _visits.ListForClientAsync(client.Id, Ct));
+        Assert.Single(await _visits.ListForClientAsync(client.Id, 0, 10, Ct));
     }
 
     [Fact]
@@ -289,30 +307,37 @@ public class ClientServiceTests : ServiceTestBase
     }
 
     [Fact]
-    public async Task ListVisitsAsync_returns_newest_first()
+    public async Task ListVisitsAsync_returns_the_requested_page_newest_first_with_the_total()
     {
         var client = await _service.RegisterAsync(Request(), Ct);
         await _service.PurchaseMembershipAsync(client.Id, Purchase((await SeedPlanAsync()).Id), Ct);
-        var first = await _service.CheckInAsync(client.Id, Ct);
-        _time.Advance(TimeSpan.FromDays(1));
-        var second = await _service.CheckInAsync(client.Id, Ct);
+        var visits = new List<VisitResponse>();
+        for (var day = 0; day < 3; day++)
+        {
+            visits.Add(await _service.CheckInAsync(client.Id, Ct));
+            _time.Advance(TimeSpan.FromDays(1));
+        }
 
-        var history = await _service.ListVisitsAsync(client.Id, Ct);
+        var firstPage = await _service.ListVisitsAsync(client.Id, new VisitPageQuery { Page = 1, PageSize = 2 }, Ct);
+        var secondPage = await _service.ListVisitsAsync(client.Id, new VisitPageQuery { Page = 2, PageSize = 2 }, Ct);
 
-        Assert.Equal([second.Id, first.Id], history.Select(v => v.Id));
+        Assert.Equal([visits[2].Id, visits[1].Id], firstPage.Items.Select(v => v.Id));
+        Assert.Equal([visits[0].Id], secondPage.Items.Select(v => v.Id));
+        Assert.Equal(3, firstPage.TotalCount);
+        Assert.Equal(3, secondPage.TotalCount);
     }
 
     [Fact]
     public async Task ListVisitsAsync_for_missing_client_throws_not_found()
     {
-        await Assert.ThrowsAsync<NotFoundException>(() => _service.ListVisitsAsync(Guid.NewGuid(), Ct));
+        await Assert.ThrowsAsync<NotFoundException>(() => _service.ListVisitsAsync(Guid.NewGuid(), new VisitPageQuery(), Ct));
     }
 
     [Fact]
     public async Task ListAsync_shows_active_membership_summary_or_null()
     {
-        var withMembership = await _service.RegisterAsync(Request(lastName: "Antonenko", phone: "+380671111111"), Ct);
-        await _service.RegisterAsync(Request(lastName: "Bondarenko", phone: "+380672222222"), Ct);
+        var withMembership = await _service.RegisterAsync(Request(lastName: "Antonenko", email: "antonenko@example.com"), Ct);
+        await _service.RegisterAsync(Request(lastName: "Bondarenko", email: "bondarenko@example.com"), Ct);
         var plan = await SeedPlanAsync(validityDays: 30, visitLimit: 10);
         await _service.PurchaseMembershipAsync(withMembership.Id, Purchase(plan.Id), Ct);
 

@@ -47,7 +47,7 @@ All `GET`. Errors are problem details: 400 for a bad parameter, 401 anonymous, 4
 
 ```json
 { "from": "2026-09-08", "to": "2026-10-07", "clients": [ {
-  "clientId": "…", "fullName": "Avramenko Anna", "age": 35, "phone": "+380…",
+  "clientId": "…", "fullName": "Avramenko Anna", "age": 35, "email": "anna@example.com", "phone": "+380…",
   "activeMembership": { "membershipId": "…", "planName": "Monthly", "startsOn": "2026-08-25", "endsOn": "2026-10-23", "remainingVisits": null },
   "visitCount": 2, "lastVisitAt": "2026-10-02T18:00:00+03:00" } ] }
 ```

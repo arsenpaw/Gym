@@ -14,8 +14,8 @@ public sealed class Client : AggregateRoot
 
     public PersonName Name { get; private set; } = null!;
     public DateOnly DateOfBirth { get; private set; }
-    public PhoneNumber Phone { get; private set; } = null!;
-    public EmailAddress? Email { get; private set; }
+    public EmailAddress Email { get; private set; } = null!;
+    public PhoneNumber? Phone { get; private set; }
     public DateTimeOffset RegisteredAt { get; private set; }
     public IReadOnlyCollection<Membership> Memberships => _memberships.AsReadOnly();
 
@@ -23,14 +23,14 @@ public sealed class Client : AggregateRoot
     {
     }
 
-    public static Client Register(PersonName name, DateOnly dateOfBirth, PhoneNumber phone, EmailAddress? email, DateTimeOffset now)
+    public static Client Register(PersonName name, DateOnly dateOfBirth, EmailAddress email, PhoneNumber? phone, DateTimeOffset now)
     {
         var client = new Client { RegisteredAt = now };
-        client.UpdateProfile(name, dateOfBirth, phone, email, now);
+        client.UpdateProfile(name, dateOfBirth, email, phone, now);
         return client;
     }
 
-    public void UpdateProfile(PersonName name, DateOnly dateOfBirth, PhoneNumber phone, EmailAddress? email, DateTimeOffset now)
+    public void UpdateProfile(PersonName name, DateOnly dateOfBirth, EmailAddress email, PhoneNumber? phone, DateTimeOffset now)
     {
         var today = now.ToDateOnly();
         if (dateOfBirth > today)
@@ -41,8 +41,8 @@ public sealed class Client : AggregateRoot
 
         Name = name;
         DateOfBirth = dateOfBirth;
-        Phone = phone;
         Email = email;
+        Phone = phone;
     }
 
     public int AgeOn(DateOnly date) => AgeOn(DateOfBirth, date);
@@ -85,7 +85,6 @@ public sealed class Client : AggregateRoot
 
     public bool NeedsExpiryNotice(Membership membership, DateOnly today) =>
         Owns(membership)
-        && Email is not null
         && !membership.IsCancelled
         && membership.HasVisitsRemaining
         && membership.EndsOn >= today

@@ -15,7 +15,7 @@ import { RoomsPage } from '../features/rooms/RoomsPage';
 import { SchedulePage } from '../features/schedule/SchedulePage';
 import { TrainersPage } from '../features/trainers/TrainersPage';
 import { signInAs } from '../test/auth';
-import { clientDetails, ids } from '../test/fixtures';
+import { clientDetails, ids, visitPage } from '../test/fixtures';
 import { renderRoute } from '../test/render';
 import { server } from '../test/server';
 
@@ -57,7 +57,7 @@ const cases: Case[] = [
     name: 'client visits',
     role: 'Receptionist',
     path: '/clients/:clientId',
-    route: `/clients/${ids.client}`,
+    route: `/clients/${ids.client}?tab=visits`,
     element: <ClientDetailsPage />,
     failing: '*/api/clients/:id/visits',
     others: [getClientsGetMockHandler(clientDetails())],
@@ -79,7 +79,7 @@ describe('a failed load is shown as an error, never as empty data', () => {
 
   it('plans for sale in the membership dialog', async () => {
     signInAs('Receptionist');
-    server.use(getClientsGetMockHandler(clientDetails()), getClientsListVisitsMockHandler([]), serverError('*/api/membership-plans'));
+    server.use(getClientsGetMockHandler(clientDetails()), getClientsListVisitsMockHandler(visitPage()), serverError('*/api/membership-plans'));
     const { user } = renderRoute([{ path: '/clients/:clientId', element: <ClientDetailsPage /> }], `/clients/${ids.client}`);
 
     await user.click(await screen.findByRole('button', { name: 'Sell membership' }));

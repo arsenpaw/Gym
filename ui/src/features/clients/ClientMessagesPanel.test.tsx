@@ -11,7 +11,7 @@ import { signInAs } from '../../test/auth';
 import { ids } from '../../test/fixtures';
 import { renderPage } from '../../test/render';
 import { server } from '../../test/server';
-import { ClientMessagesCard } from './ClientMessagesCard';
+import { ClientMessagesPanel } from './ClientMessagesPanel';
 
 const previews: Record<string, ClientMessagePreviewResponse> = {
   ExpiryReminder: { template: 'ExpiryReminder', recipient: 'olena@example.com', subject: 'Your membership expires soon', html: '<p>Dear Olena, your membership ends in 4 days</p>' },
@@ -36,14 +36,14 @@ const message = (overrides: Partial<NotificationResponse> = {}): NotificationRes
 
 const previewHandler = getClientMessagesPreviewMockHandler(({ request }) => previews[new URL(request.url).searchParams.get('Template') ?? '']);
 
-const renderCard = () => renderPage(<ClientMessagesCard clientId={ids.client} />);
+const renderPanel = () => renderPage(<ClientMessagesPanel clientId={ids.client} />);
 
-describe('ClientMessagesCard', () => {
+describe('ClientMessagesPanel', () => {
   beforeEach(() => signInAs('Receptionist'));
 
   it('previews the reminder and switches to the promotion', async () => {
     server.use(previewHandler, getClientMessagesListMockHandler([]));
-    const { user } = renderCard();
+    const { user } = renderPanel();
 
     expect(await screen.findByText('Your membership expires soon')).toBeInTheDocument();
     expect(screen.getByText('olena@example.com')).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe('ClientMessagesCard', () => {
       ),
       getClientMessagesListMockHandler([]),
     );
-    renderCard();
+    renderPanel();
 
     expect(await screen.findByText('The client has no active membership to remind about.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send email' })).toBeDisabled();
@@ -82,7 +82,7 @@ describe('ClientMessagesCard', () => {
         return message();
       }),
     );
-    const { user } = renderCard();
+    const { user } = renderPanel();
 
     await user.click(await screen.findByRole('radio', { name: 'Promotion' }));
     await screen.findByText('10% off your next membership');
@@ -101,7 +101,7 @@ describe('ClientMessagesCard', () => {
       getClientMessagesListMockHandler([]),
       getClientMessagesSendMockHandler(message({ status: 'Failed', sentAt: null, failureReason: 'SendGrid rejected the email (401 Unauthorized)' })),
     );
-    const { user } = renderCard();
+    const { user } = renderPanel();
 
     await user.click(await screen.findByRole('button', { name: 'Send email' }));
     await user.click(await screen.findByRole('button', { name: 'Send' }));
@@ -114,7 +114,7 @@ describe('ClientMessagesCard', () => {
       previewHandler,
       getClientMessagesListMockHandler([message({ type: 'MembershipExpiring', subject: 'Your membership expires soon', status: 'Failed', sentAt: null })]),
     );
-    renderCard();
+    renderPanel();
 
     expect(await screen.findByText('Expiry notice')).toBeInTheDocument();
     expect(screen.getByText('Failed')).toBeInTheDocument();

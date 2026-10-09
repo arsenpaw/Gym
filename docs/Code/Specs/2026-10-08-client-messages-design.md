@@ -18,7 +18,7 @@ Staff open a client's page, choose a template, see the real email rendered with 
 - **SendGrid only.** It is reached through SendGrid's v3 Mail Send REST API (`POST https://api.sendgrid.com/v3/mail/send`) with an API key, using a typed `HttpClient`. There is no SDK package: it would add dependencies for a single JSON POST. Without an API key, notices are only logged (`LoggingNotificationSender`), as before. SMS is out of scope.
 - **Templates in our repo.** The two HTML files are embedded resources in Infrastructure. The API fills them and sends finished HTML plus a plain-text part. SendGrid Dynamic Templates are not used, so the in-app preview is exactly the email that goes out, and the templates are versioned and tested.
 - **Fixed text.** There is no template editor and no staff input. The promotion is always 10% off, valid until the last day of the current month.
-- **Email only.** A client without an email address can't be messaged.
+- **Email only.** Every client has an email address, which is required since [[2026-10-09-client-contacts-and-page-design]].
 - **Kept as history.** Each send is a `Notification`. It shows on the Notifications page, can be retried there, and is listed on the client page. Retrying a promotion re-renders it for the current month, so it never offers a discount that has already expired.
 - **Roles.** Admin and Receptionist, the same as the rest of the client page.
 
@@ -54,8 +54,8 @@ Every value inserted into a template is HTML-encoded.
 | Factory | Rule |
 |---|---|
 | `MembershipExpiring(client, membership, content, now)` | Unchanged: the client owns the membership and it needs an expiry notice |
-| `ExpiryReminder(client, membership, content, now)` | The client has an email, owns the membership, and the membership is active today. `MembershipId` stays null, so the daily job's unique `(MembershipId, Type)` index never blocks it |
-| `Promotion(client, content, now)` | The client has an email |
+| `ExpiryReminder(client, membership, content, now)` | The client owns the membership, and the membership is active today. `MembershipId` stays null, so the daily job's unique `(MembershipId, Type)` index never blocks it |
+| `Promotion(client, content, now)` | Always allowed |
 
 ## Application
 
@@ -83,7 +83,7 @@ Every value inserted into a template is HTML-encoded.
 
 | Method | Path | Result |
 |---|---|---|
-| GET | `/preview?template=ExpiryReminder\|Promotion` | 200 `{ template, recipient, subject, html }`. 400 for a missing or unknown template, no client email, or (reminder) no active membership. 404 for an unknown client |
+| GET | `/preview?template=ExpiryReminder\|Promotion` | 200 `{ template, recipient, subject, html }`. 400 for a missing or unknown template, or (reminder) no active membership. 404 for an unknown client |
 | POST | `/` with body `{ template }` | 200 with the stored `NotificationResponse` (`Sent`, or `Failed` with SendGrid's reason). 400 and 404 as above |
 | GET | `/` | 200, the client's notifications, newest first. 404 for an unknown client |
 
@@ -104,10 +104,10 @@ Every value inserted into a template is HTML-encoded.
 
 ## UI
 
-`ClientMessagesCard` on `ClientDetailsPage`, below Visits:
+`ClientMessagesPanel` in the Messages tab of `ClientDetailsPage` ([[2026-10-09-client-contacts-and-page-design]]):
 
 - **Template:** a `SegmentedControl` with `Expiry reminder | Promotion`.
-- **Preview:** To and Subject, then the HTML in a sandboxed `<iframe srcDoc>`.
+- **Preview:** To and Subject, then the HTML in a sandboxed `<iframe srcDoc>` (`EmailPreviewFrame`) sized to the email's content, so it has no inner scrollbar.
   - A 400 shows its reason in an `Alert` and disables **Send**.
 - **Send:** a confirm modal ("Send this email to {recipient}?"), then POST.
   - `Sent`: a teal toast "Email sent".

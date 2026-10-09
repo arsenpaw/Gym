@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Card, Center, Group, Loader, SegmentedControl, Stack, Table, Text, Title, Tooltip } from '@mantine/core';
+import { Alert, Badge, Button, Center, Group, Loader, SegmentedControl, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { IconSend } from '@tabler/icons-react';
@@ -16,6 +16,7 @@ import { problemMessage } from '../../api/problem';
 import { QueryErrorAlert } from '../../api/QueryErrorAlert';
 import { formatDateTime } from '../../lib/format';
 import { notificationStatusColors, notificationTypeLabels } from '../notifications/notificationLabels';
+import { EmailPreviewFrame } from './EmailPreviewFrame';
 
 type Template = 'ExpiryReminder' | 'Promotion';
 
@@ -24,7 +25,7 @@ const templates: { value: Template; label: string }[] = [
   { value: 'Promotion', label: 'Promotion' },
 ];
 
-export const ClientMessagesCard = ({ clientId }: { clientId: string }) => {
+export const ClientMessagesPanel = ({ clientId }: { clientId: string }) => {
   const queryClient = useQueryClient();
   const [template, setTemplate] = useState<Template>('ExpiryReminder');
   const preview = useClientMessagesPreview(clientId, { Template: template }, { query: { retry: false } });
@@ -52,47 +53,43 @@ export const ClientMessagesCard = ({ clientId }: { clientId: string }) => {
     });
 
   return (
-    <Card withBorder radius="md">
-      <Group justify="space-between" mb="sm">
-        <Title order={4}>Messages</Title>
-        <Group>
-          <SegmentedControl data={templates} value={template} onChange={(value) => setTemplate(value as Template)} aria-label="Template" />
-          <Button
-            leftSection={<IconSend size={16} />}
-            disabled={!preview.isSuccess}
-            loading={send.isPending}
-            onClick={() => preview.data && confirmSend(preview.data.recipient)}
-          >
-            Send email
-          </Button>
-        </Group>
+    <Stack gap="lg">
+      <Group justify="space-between">
+        <SegmentedControl data={templates} value={template} onChange={(value) => setTemplate(value as Template)} aria-label="Template" />
+        <Button
+          leftSection={<IconSend size={16} />}
+          disabled={!preview.isSuccess}
+          loading={send.isPending}
+          onClick={() => preview.data && confirmSend(preview.data.recipient)}
+        >
+          Send email
+        </Button>
       </Group>
-      <Stack>
-        {preview.isPending ? (
-          <Center h={120}><Loader /></Center>
-        ) : preview.isError ? (
-          <Alert color="orange" title="This email can't be sent">{problemMessage(preview.error)}</Alert>
-        ) : (
-          <>
-            <Table variant="vertical" layout="fixed">
-              <Table.Tbody>
-                <Table.Tr><Table.Th w={120}>To</Table.Th><Table.Td>{preview.data.recipient}</Table.Td></Table.Tr>
-                <Table.Tr><Table.Th>Subject</Table.Th><Table.Td>{preview.data.subject}</Table.Td></Table.Tr>
-              </Table.Tbody>
-            </Table>
-            <iframe
-              title="Email preview"
-              srcDoc={preview.data.html}
-              sandbox=""
-              style={{ width: '100%', height: 520, border: '1px solid var(--mantine-color-default-border)', borderRadius: 'var(--mantine-radius-md)' }}
-            />
-          </>
-        )}
+      {preview.isPending ? (
+        <Center h={200}><Loader /></Center>
+      ) : preview.isError ? (
+        <Alert color="orange" title="This email can't be sent">{problemMessage(preview.error)}</Alert>
+      ) : (
+        <Stack gap="xs">
+          <Group gap="xs" wrap="nowrap">
+            <Text size="sm" c="dimmed" w={64}>To</Text>
+            <Text size="sm">{preview.data.recipient}</Text>
+          </Group>
+          <Group gap="xs" wrap="nowrap">
+            <Text size="sm" c="dimmed" w={64}>Subject</Text>
+            <Text size="sm" fw={600}>{preview.data.subject}</Text>
+          </Group>
+          <EmailPreviewFrame html={preview.data.html} />
+        </Stack>
+      )}
+      <Stack gap="xs">
         <Title order={5}>Sent messages</Title>
         {history.isError ? (
           <QueryErrorAlert title="Could not load messages" error={history.error} />
         ) : (
           <DataTable
+            withTableBorder
+            borderRadius="md"
             minHeight={120}
             fetching={history.isFetching}
             records={history.data ?? []}
@@ -115,6 +112,6 @@ export const ClientMessagesCard = ({ clientId }: { clientId: string }) => {
           />
         )}
       </Stack>
-    </Card>
+    </Stack>
   );
 };

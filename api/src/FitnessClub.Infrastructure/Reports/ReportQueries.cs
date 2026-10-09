@@ -33,7 +33,8 @@ internal sealed class ReportQueries(FitnessClubDbContext db) : IReportQueries
                     client.Id,
                     client.Name.FullName,
                     client.AgeOn(today),
-                    client.Phone.Value,
+                    client.Email.Value,
+                    client.Phone?.Value,
                     active is null
                         ? null
                         : new ActiveMembershipSummary(active.Id, active.PlanName, active.StartsOn, active.EndsOn, active.RemainingVisits),

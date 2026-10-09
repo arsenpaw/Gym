@@ -53,7 +53,8 @@ export const ClientActivityReport = () => {
             columns={[
               { accessor: 'fullName', title: 'Client', sortable: true },
               { accessor: 'age', title: 'Age', textAlign: 'right', sortable: true },
-              { accessor: 'phone', title: 'Phone' },
+              { accessor: 'email', title: 'Email' },
+              { accessor: 'phone', title: 'Phone', render: (c) => c.phone ?? '—' },
               {
                 accessor: 'activeMembership',
                 title: 'Membership',

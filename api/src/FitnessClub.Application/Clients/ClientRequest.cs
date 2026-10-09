@@ -22,9 +22,9 @@ public sealed record ClientRequest
     public DateOnly? DateOfBirth { get; init; }
 
     [Required]
-    [StringLength(PhoneInputMaxLength)]
-    public string Phone { get; init; } = "";
-
     [StringLength(EmailAddress.MaxLength)]
-    public string? Email { get; init; }
+    public string Email { get; init; } = "";
+
+    [StringLength(PhoneInputMaxLength)]
+    public string? Phone { get; init; }
 }

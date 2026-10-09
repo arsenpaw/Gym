@@ -6,6 +6,7 @@ using FitnessClub.Domain.Rooms;
 using FitnessClub.Domain.SharedKernel;
 using FitnessClub.Domain.Trainers;
 using FitnessClub.IntegrationTests.Infrastructure;
+using FitnessClub.UnitTests.Domain;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessClub.IntegrationTests.Sessions;
@@ -41,7 +42,7 @@ internal sealed class SessionSeeder(FitnessClubApiFactory factory)
     {
         var now = Now;
         var client = Client.Register(
-            PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), null, now);
+            PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), EmailAddress.Create(TestData.UniqueEmail()), PhoneNumber.Create(UniquePhone()), now);
         if (withMembership)
         {
             var plan = MembershipPlan.Create($"Plan {Guid.NewGuid():N}", Money.Of(800m), 30, null);

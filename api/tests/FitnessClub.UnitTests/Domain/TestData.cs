@@ -20,11 +20,11 @@ internal static class TestData
         FitnessClub.Domain.Clients.Client.Register(
             PersonName.Create("Olena", "Shevchenko", null),
             new DateOnly(1995, 3, 14),
+            EmailAddress.Create(email ?? UniqueEmail()),
             PhoneNumber.Create(UniquePhone()),
-            email is null ? null : EmailAddress.Create(email),
             Now);
 
-    public static Client ClientWithMembership(int validityDays = 30, int? visitLimit = null, string? email = "olena@example.com")
+    public static Client ClientWithMembership(int validityDays = 30, int? visitLimit = null, string? email = null)
     {
         var client = Client(email);
         Buy(client, Plan(validityDays, visitLimit));
@@ -49,6 +49,8 @@ internal static class TestData
         trainer.SetWorkingHours(Enum.GetValues<DayOfWeek>().Select(day => WorkingHours.Create(day, new TimeOnly(8, 0), new TimeOnly(20, 0))));
         return trainer;
     }
+
+    public static string UniqueEmail() => $"client-{Guid.NewGuid():N}@example.com";
 
     public static string UniquePhone() => $"+380{Random.Shared.NextInt64(100_000_000, 999_999_999)}";
 

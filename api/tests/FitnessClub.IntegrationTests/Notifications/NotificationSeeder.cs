@@ -45,9 +45,9 @@ internal static class NotificationSeeder
         return notification;
     }
 
-    public static async Task<Client> ClientWithMembershipAsync(this FitnessClubApiFactory factory, bool withEmail = true)
+    public static async Task<Client> ClientWithMembershipAsync(this FitnessClubApiFactory factory)
     {
-        var (client, _, plan) = NewClient(TimeProvider.System.GetLocalNow(), withEmail);
+        var (client, _, plan) = NewClient(TimeProvider.System.GetLocalNow());
 
         await using var scope = factory.Services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<IMembershipPlanRepository>().Add(plan);
@@ -62,14 +62,14 @@ internal static class NotificationSeeder
         return await scope.ServiceProvider.GetRequiredService<INotificationRepository>().ListAsync(null, Ct);
     }
 
-    private static (Client Client, Membership Membership, MembershipPlan Plan) NewClient(DateTimeOffset now, bool withEmail = true)
+    private static (Client Client, Membership Membership, MembershipPlan Plan) NewClient(DateTimeOffset now)
     {
         var plan = MembershipPlan.Create($"Plan {Guid.NewGuid():N}", Money.Of(800m), ValidityDays, null);
         var client = Client.Register(
             PersonName.Create("Olena", "Shevchenko", null),
             new DateOnly(1995, 3, 14),
+            EmailAddress.Create($"{Guid.NewGuid():N}@example.com"),
             PhoneNumber.Create($"+380{Random.Shared.NextInt64(100_000_000, 999_999_999)}"),
-            withEmail ? EmailAddress.Create($"{Guid.NewGuid():N}@example.com") : null,
             now);
         var payment = client.PurchaseMembership(plan, DateOnly.FromDateTime(now.DateTime), PaymentMethod.Cash, now);
         return (client, client.Memberships.Single(m => m.Id == payment.MembershipId), plan);

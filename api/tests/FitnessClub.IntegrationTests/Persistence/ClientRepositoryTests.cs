@@ -5,18 +5,19 @@ using FitnessClub.Domain.Payments;
 using FitnessClub.Domain.SharedKernel;
 using FitnessClub.Domain.Visits;
 using FitnessClub.IntegrationTests.Infrastructure;
+using FitnessClub.UnitTests.Domain;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessClub.IntegrationTests.Persistence;
 
 public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceTestBase(factory)
 {
-    private static Client NewClient(string? email = "olena@example.com") =>
+    private static Client NewClient(bool withPhone = true) =>
         Client.Register(
             PersonName.Create("Olena", "Shevchenko", "Petrivna"),
             new DateOnly(1995, 3, 14),
-            PhoneNumber.Create(UniquePhone()),
-            email is null ? null : EmailAddress.Create(email),
+            EmailAddress.Create(TestData.UniqueEmail()),
+            withPhone ? PhoneNumber.Create(UniquePhone()) : null,
             Now);
 
     [Fact]
@@ -41,7 +42,7 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
     [Fact]
     public async Task Membership_bought_on_loaded_client_is_inserted()
     {
-        var client = NewClient(email: null);
+        var client = NewClient(withPhone: false);
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
 
         await ChangeAsync<IClientRepository>(async clients =>
@@ -52,7 +53,8 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
 
         var reloaded = await ReadAsync<IClientRepository, Client?>(clients => clients.GetByIdAsync(client.Id, Ct));
         Assert.Single(reloaded!.Memberships);
-        Assert.Null(reloaded.Email);
+        Assert.Equal(client.Email, reloaded.Email);
+        Assert.Null(reloaded.Phone);
     }
 
     [Fact]
@@ -69,19 +71,40 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
         });
 
         var reloaded = await ReadAsync<IClientRepository, Client?>(clients => clients.GetByIdAsync(client.Id, Ct));
-        var history = await ReadAsync<IVisitRepository, IReadOnlyList<Visit>>(visits => visits.ListForClientAsync(client.Id, Ct));
+        var history = await ReadAsync<IVisitRepository, IReadOnlyList<Visit>>(visits => visits.ListForClientAsync(client.Id, 0, 10, Ct));
         Assert.Equal(4, reloaded!.Memberships.Single().RemainingVisits);
         Assert.Equal(Now, Assert.Single(history).CheckedInAt);
     }
 
     [Fact]
-    public async Task PhoneExistsAsync_matches_normalized_phone()
+    public async Task EmailExistsAsync_matches_normalized_email()
     {
         var client = NewClient();
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
+        var typed = EmailAddress.Create(client.Email.Value.ToUpperInvariant());
 
-        Assert.True(await ReadAsync<IClientRepository, bool>(clients => clients.PhoneExistsAsync(client.Phone, null, Ct)));
-        Assert.False(await ReadAsync<IClientRepository, bool>(clients => clients.PhoneExistsAsync(client.Phone, client.Id, Ct)));
+        Assert.True(await ReadAsync<IClientRepository, bool>(clients => clients.EmailExistsAsync(typed, null, Ct)));
+        Assert.False(await ReadAsync<IClientRepository, bool>(clients => clients.EmailExistsAsync(typed, client.Id, Ct)));
+    }
+
+    [Fact]
+    public async Task Visits_are_paged_newest_first_with_a_total_count()
+    {
+        var client = NewClient();
+        client.PurchaseMembership(await SavedPlanAsync(), Today, PaymentMethod.Cash, Now);
+        var visits = Enumerable.Range(0, 5).Select(day => client.CheckIn(Now.AddDays(day))).ToList();
+        await InUnitOfWorkAsync(services =>
+        {
+            services.GetRequiredService<IClientRepository>().Add(client);
+            visits.ForEach(services.GetRequiredService<IVisitRepository>().Add);
+            return Task.CompletedTask;
+        });
+
+        var page = await ReadAsync<IVisitRepository, IReadOnlyList<Visit>>(repository => repository.ListForClientAsync(client.Id, 2, 2, Ct));
+        var total = await ReadAsync<IVisitRepository, int>(repository => repository.CountForClientAsync(client.Id, Ct));
+
+        Assert.Equal([visits[2].Id, visits[1].Id], page.Select(visit => visit.Id));
+        Assert.Equal(5, total);
     }
 
     [Fact]
@@ -147,7 +170,7 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
 
         await Assert.ThrowsAsync<ConflictException>(() => second.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync(Ct));
         var reloaded = await ReadAsync<IClientRepository, Client?>(clients => clients.GetByIdAsync(client.Id, Ct));
-        var history = await ReadAsync<IVisitRepository, IReadOnlyList<Visit>>(visits => visits.ListForClientAsync(client.Id, Ct));
+        var history = await ReadAsync<IVisitRepository, IReadOnlyList<Visit>>(visits => visits.ListForClientAsync(client.Id, 0, 10, Ct));
         Assert.Equal(0, reloaded!.Memberships.Single().RemainingVisits);
         Assert.Single(history);
     }
@@ -187,7 +210,7 @@ public class ClientRepositoryTests(FitnessClubApiFactory factory) : PersistenceT
         await ChangeAsync<IClientRepository>(async clients =>
             (await clients.GetByIdAsync(client.Id, Ct))!.CancelMembership(client.Memberships.Single().Id, Now));
 
-        staleCopy!.UpdateProfile(staleCopy.Name, staleCopy.DateOfBirth, PhoneNumber.Create(UniquePhone()), null, Now);
+        staleCopy!.UpdateProfile(staleCopy.Name, staleCopy.DateOfBirth, staleCopy.Email, PhoneNumber.Create(UniquePhone()), Now);
 
         await Assert.ThrowsAsync<ConflictException>(() => stale.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync(Ct));
     }

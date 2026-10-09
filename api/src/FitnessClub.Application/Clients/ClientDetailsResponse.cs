@@ -10,8 +10,8 @@ public sealed record ClientDetailsResponse(
     string FullName,
     DateOnly DateOfBirth,
     int Age,
-    string Phone,
-    string? Email,
+    string Email,
+    string? Phone,
     DateTimeOffset RegisteredAt,
     ActiveMembershipResponse? ActiveMembership,
     IReadOnlyList<MembershipResponse> Memberships)
@@ -25,8 +25,8 @@ public sealed record ClientDetailsResponse(
             client.Name.FullName,
             client.DateOfBirth,
             client.AgeOn(today),
-            client.Phone.Value,
-            client.Email?.Value,
+            client.Email.Value,
+            client.Phone?.Value,
             client.RegisteredAt,
             ActiveMembershipResponse.For(client, today),
             client.Memberships

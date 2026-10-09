@@ -12,7 +12,7 @@ public class NotificationRepositoryTests(FitnessClubApiFactory factory) : Persis
     [Fact]
     public async Task Notification_round_trips_and_is_found_by_membership()
     {
-        var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), EmailAddress.Create("olena@example.com"), Now);
+        var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), EmailAddress.Create("olena@example.com"), PhoneNumber.Create(UniquePhone()), Now);
         var payment = client.PurchaseMembership(await SavedPlanAsync(), Today, PaymentMethod.Cash, Now);
         var membership = client.Memberships.Single(m => m.Id == payment.MembershipId);
         var notification = Notification.MembershipExpiring(client, membership, TestData.Content(), Now);
@@ -37,8 +37,8 @@ public class NotificationRepositoryTests(FitnessClubApiFactory factory) : Persis
     [Fact]
     public async Task ListForClientAsync_returns_only_that_clients_notifications_newest_first()
     {
-        var olena = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), EmailAddress.Create("olena.list@example.com"), Now);
-        var ivan = Client.Register(PersonName.Create("Ivan", "Koval", null), new DateOnly(1990, 1, 2), PhoneNumber.Create(UniquePhone()), EmailAddress.Create("ivan.list@example.com"), Now);
+        var olena = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), EmailAddress.Create("olena.list@example.com"), PhoneNumber.Create(UniquePhone()), Now);
+        var ivan = Client.Register(PersonName.Create("Ivan", "Koval", null), new DateOnly(1990, 1, 2), EmailAddress.Create("ivan.list@example.com"), PhoneNumber.Create(UniquePhone()), Now);
         var older = Notification.Promotion(olena, TestData.Content(), Now);
         var newer = Notification.Promotion(olena, TestData.Content(html: null), Now.AddHours(1));
         var other = Notification.Promotion(ivan, TestData.Content(), Now);

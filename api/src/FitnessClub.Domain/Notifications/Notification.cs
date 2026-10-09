@@ -87,14 +87,13 @@ public sealed class Notification : AggregateRoot
 
     private static Notification Email(Client client, Guid? membershipId, NotificationType type, NotificationContent content, DateTimeOffset now)
     {
-        var email = client.Email ?? throw new DomainException("The client has no email address.");
         return new Notification
         {
             ClientId = client.Id,
             MembershipId = membershipId,
             Type = type,
             Channel = NotificationChannel.Email,
-            Recipient = email.Value,
+            Recipient = client.Email.Value,
             Subject = content.Subject,
             Message = content.Text,
             HtmlBody = content.Html,

@@ -20,8 +20,17 @@ public class ClientsEndpointsTests(FitnessClubApiFactory factory) : IClassFixtur
 
     private static string UniquePhone() => $"+380{Random.Shared.NextInt64(100_000_000, 1_000_000_000)}";
 
-    private static object NewClient(string? phone = null, string firstName = "Olena", string? email = null) =>
-        new { firstName, lastName = "Shevchenko", dateOfBirth = "1995-03-14", phone = phone ?? UniquePhone(), email };
+    private static string UniqueEmail() => $"client-{Guid.NewGuid():N}@example.com";
+
+    private static object NewClient(string? email = null, string firstName = "Olena", string? phone = null, bool withPhone = true) =>
+        new
+        {
+            firstName,
+            lastName = "Shevchenko",
+            dateOfBirth = "1995-03-14",
+            email = email ?? UniqueEmail(),
+            phone = withPhone ? phone ?? UniquePhone() : null,
+        };
 
     private async Task<ClientDetailsResponse> RegisterAsync(object? body = null)
     {
@@ -117,10 +126,10 @@ public class ClientsEndpointsTests(FitnessClubApiFactory factory) : IClassFixtur
     }
 
     [Theory]
-    [InlineData("""{ "firstName": "", "lastName": "Shevchenko", "dateOfBirth": "1995-03-14", "phone": "+380671234567" }""")]
-    [InlineData("""{ "firstName": "Olena", "lastName": "Shevchenko", "phone": "+380671234567" }""")]
-    [InlineData("""{ "firstName": "Olena", "lastName": "Shevchenko", "dateOfBirth": "1995-03-14" }""")]
-    [InlineData("""{ "firstName": "Olena", "lastName": "Shevchenko", "dateOfBirth": "14.03.1995", "phone": "+380671234567" }""")]
+    [InlineData("""{ "firstName": "", "lastName": "Shevchenko", "dateOfBirth": "1995-03-14", "email": "olena@example.com" }""")]
+    [InlineData("""{ "firstName": "Olena", "lastName": "Shevchenko", "email": "olena@example.com" }""")]
+    [InlineData("""{ "firstName": "Olena", "lastName": "Shevchenko", "dateOfBirth": "1995-03-14", "phone": "+380671234567" }""")]
+    [InlineData("""{ "firstName": "Olena", "lastName": "Shevchenko", "dateOfBirth": "14.03.1995", "email": "olena@example.com" }""")]
     [InlineData("""{ "firstName": "Olena" """)]
     public async Task Register_with_invalid_body_returns_400_problem_details(string json)
     {
@@ -148,13 +157,33 @@ public class ClientsEndpointsTests(FitnessClubApiFactory factory) : IClassFixtur
     }
 
     [Fact]
-    public async Task Register_with_existing_phone_returns_409()
+    public async Task Register_with_existing_email_returns_409()
+    {
+        var existing = await RegisterAsync();
+
+        var response = await Receptionist().PostAsJsonAsync(BaseUrl, NewClient(email: existing.Email.ToUpperInvariant()), Ct);
+
+        await AssertProblemAsync(response, HttpStatusCode.Conflict, $"A client with email '{existing.Email}' already exists.");
+    }
+
+    [Fact]
+    public async Task Register_without_phone_returns_201_with_no_phone()
+    {
+        var response = await Receptionist().PostAsJsonAsync(BaseUrl, NewClient(withPhone: false), Ct);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var client = await response.Content.ReadFromJsonAsync<ClientDetailsResponse>(Ct);
+        Assert.Null(client!.Phone);
+    }
+
+    [Fact]
+    public async Task Register_with_another_clients_phone_returns_201()
     {
         var existing = await RegisterAsync();
 
         var response = await Receptionist().PostAsJsonAsync(BaseUrl, NewClient(phone: existing.Phone), Ct);
 
-        await AssertProblemAsync(response, HttpStatusCode.Conflict);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]
@@ -166,6 +195,7 @@ public class ClientsEndpointsTests(FitnessClubApiFactory factory) : IClassFixtur
 
         Assert.NotNull(client);
         Assert.Equal(created.Id, client.Id);
+        Assert.Equal(created.Email, client.Email);
         Assert.Equal(created.Phone, client.Phone);
     }
 
@@ -192,12 +222,12 @@ public class ClientsEndpointsTests(FitnessClubApiFactory factory) : IClassFixtur
     }
 
     [Fact]
-    public async Task Update_to_another_clients_phone_returns_409()
+    public async Task Update_to_another_clients_email_returns_409()
     {
         var first = await RegisterAsync();
         var second = await RegisterAsync();
 
-        var response = await Receptionist().PutAsJsonAsync($"{BaseUrl}/{second.Id}", NewClient(phone: first.Phone), Ct);
+        var response = await Receptionist().PutAsJsonAsync($"{BaseUrl}/{second.Id}", NewClient(email: first.Email), Ct);
 
         await AssertProblemAsync(response, HttpStatusCode.Conflict);
     }
@@ -371,8 +401,9 @@ public class ClientsEndpointsTests(FitnessClubApiFactory factory) : IClassFixtur
         Assert.Equal(client.Id, visit.ClientId);
         Assert.Equal(membership.Id, visit.MembershipId);
 
-        var history = await Receptionist().GetFromJsonAsync<List<VisitResponse>>($"{BaseUrl}/{client.Id}/visits", Ct);
-        Assert.Equal(visit, Assert.Single(history!));
+        var history = await Receptionist().GetFromJsonAsync<VisitPageResponse>($"{BaseUrl}/{client.Id}/visits", Ct);
+        Assert.Equal(visit, Assert.Single(history!.Items));
+        Assert.Equal(1, history.TotalCount);
 
         var details = await Receptionist().GetFromJsonAsync<ClientDetailsResponse>($"{BaseUrl}/{client.Id}", Ct);
         Assert.Equal(9, details!.ActiveMembership?.VisitsLeft);
@@ -389,8 +420,8 @@ public class ClientsEndpointsTests(FitnessClubApiFactory factory) : IClassFixtur
         var response = await Receptionist().PostAsync($"{BaseUrl}/{client.Id}/visits", null, Ct);
 
         await AssertProblemAsync(response, HttpStatusCode.BadRequest, "The client has already checked in today.");
-        var history = await Receptionist().GetFromJsonAsync<List<VisitResponse>>($"{BaseUrl}/{client.Id}/visits", Ct);
-        Assert.Single(history!);
+        var history = await Receptionist().GetFromJsonAsync<VisitPageResponse>($"{BaseUrl}/{client.Id}/visits", Ct);
+        Assert.Single(history!.Items);
     }
 
     [Fact]
@@ -416,9 +447,23 @@ public class ClientsEndpointsTests(FitnessClubApiFactory factory) : IClassFixtur
     {
         var client = await RegisterAsync();
 
-        var history = await Receptionist().GetFromJsonAsync<List<VisitResponse>>($"{BaseUrl}/{client.Id}/visits", Ct);
+        var history = await Receptionist().GetFromJsonAsync<VisitPageResponse>($"{BaseUrl}/{client.Id}/visits?page=1&pageSize=25", Ct);
 
-        Assert.Empty(history!);
+        Assert.Empty(history!.Items);
+        Assert.Equal(0, history.TotalCount);
+    }
+
+    [Theory]
+    [InlineData("page=0")]
+    [InlineData("pageSize=0")]
+    [InlineData("pageSize=101")]
+    public async Task Visits_with_invalid_paging_return_400(string query)
+    {
+        var client = await RegisterAsync();
+
+        var response = await Receptionist().GetAsync($"{BaseUrl}/{client.Id}/visits?{query}", Ct);
+
+        await AssertProblemAsync(response, HttpStatusCode.BadRequest);
     }
 
     [Fact]

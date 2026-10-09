@@ -56,11 +56,19 @@ const ClientForm = ({ client, onDone, onSaved }: { client?: ClientDetailsRespons
           <TextInput control={control} name="firstName" label="First name" withAsterisk />
           <TextInput control={control} name="middleName" label="Middle name" />
         </SimpleGrid>
+        <TextInput
+          control={control}
+          name="email"
+          type="email"
+          label="Email"
+          placeholder="olena@example.com"
+          description="Expiry notices and messages are sent here"
+          withAsterisk
+        />
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
+          <TextInput control={control} name="phone" type="tel" label="Phone" placeholder="+380 67 123 4567" />
           <TextInput control={control} name="dateOfBirth" type="date" label="Date of birth" max={today()} withAsterisk />
-          <TextInput control={control} name="phone" label="Phone" placeholder="+380 67 123 4567" withAsterisk />
         </SimpleGrid>
-        <TextInput control={control} name="email" label="Email" description="Expiry reminders go here; without email they go by SMS" />
         <Group justify="flex-end">
           <Button variant="default" onClick={onDone}>Cancel</Button>
           <Button type="submit" loading={formState.isSubmitting}>Save</Button>

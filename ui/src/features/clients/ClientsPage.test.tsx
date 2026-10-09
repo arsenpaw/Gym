@@ -19,7 +19,7 @@ describe('ClientsPage', () => {
     server.use(
       getClientsListMockHandler([
         clientSummary(),
-        clientSummary({ id: ids.otherClient, fullName: 'Franko Ivan', phone: '+380509998877', email: null, activeMembership: null }),
+        clientSummary({ id: ids.otherClient, fullName: 'Franko Ivan', email: 'ivan@example.com', phone: null, activeMembership: null }),
       ]),
     );
 
@@ -28,11 +28,24 @@ describe('ClientsPage', () => {
     expect(await screen.findByText('Shevchenko Olena')).toBeInTheDocument();
     expect(screen.getByText(/Active until/)).toBeInTheDocument();
     expect(screen.getByText('No membership')).toBeInTheDocument();
+    expect(screen.getByText('ivan@example.com')).toBeInTheDocument();
+  });
+
+  it('filters by email', async () => {
+    signInAs('Receptionist');
+    server.use(getClientsListMockHandler([clientSummary(), clientSummary({ id: ids.otherClient, fullName: 'Franko Ivan', email: 'ivan@example.com' })]));
+    const { user } = renderRoute(routes, '/clients');
+
+    await screen.findByText('Franko Ivan');
+    await user.type(screen.getByRole('textbox', { name: 'Search clients' }), 'IVAN@');
+
+    await waitFor(() => expect(screen.queryByText('Shevchenko Olena')).not.toBeInTheDocument());
+    expect(screen.getByText('Franko Ivan')).toBeInTheDocument();
   });
 
   it('filters by phone digits ignoring spaces', async () => {
     signInAs('Receptionist');
-    server.use(getClientsListMockHandler([clientSummary(), clientSummary({ id: ids.otherClient, fullName: 'Franko Ivan', phone: '+380509998877' })]));
+    server.use(getClientsListMockHandler([clientSummary(), clientSummary({ id: ids.otherClient, fullName: 'Franko Ivan', email: 'ivan@example.com', phone: '+380509998877' })]));
     const { user } = renderRoute(routes, '/clients');
 
     await screen.findByText('Franko Ivan');
@@ -42,7 +55,7 @@ describe('ClientsPage', () => {
     expect(screen.getByText('Franko Ivan')).toBeInTheDocument();
   });
 
-  it('registers a client with empty optional fields sent as null and opens the new client', async () => {
+  it('registers a client with an email, sends empty optional fields as null and opens the new client', async () => {
     signInAs('Receptionist');
     let sent: ClientRequest | undefined;
     server.use(
@@ -58,12 +71,13 @@ describe('ClientsPage', () => {
     const dialog = await screen.findByRole('dialog');
     await user.click(within(dialog).getByRole('button', { name: 'Save' }));
     expect(await within(dialog).findByText('Enter a full date of birth')).toBeInTheDocument();
-    expect(within(dialog).getByText('Phone is required')).toBeInTheDocument();
+    expect(within(dialog).getByText('Email is required')).toBeInTheDocument();
+    expect(within(dialog).queryByText('Phone is required')).not.toBeInTheDocument();
 
     await user.type(within(dialog).getByLabelText(/Last name/), 'Shevchenko');
     await user.type(within(dialog).getByLabelText(/First name/), 'Olena');
     await user.type(within(dialog).getByLabelText(/Date of birth/), '1995-03-14');
-    await user.type(within(dialog).getByLabelText(/Phone/), '+380 67 123 4567');
+    await user.type(within(dialog).getByLabelText(/Email/), 'olena@example.com');
     await user.click(within(dialog).getByRole('button', { name: 'Save' }));
 
     await waitFor(() =>
@@ -72,8 +86,8 @@ describe('ClientsPage', () => {
         lastName: 'Shevchenko',
         middleName: null,
         dateOfBirth: '1995-03-14',
-        phone: '+380 67 123 4567',
-        email: null,
+        email: 'olena@example.com',
+        phone: null,
       }),
     );
     await waitFor(() => expect(router.state.location.pathname).toBe(`/clients/${ids.client}`));

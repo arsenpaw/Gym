@@ -6,6 +6,8 @@ import type {
   SessionResponse,
   TrainerResponse,
   TrainerSummaryResponse,
+  VisitPageResponse,
+  VisitResponse,
 } from '../api/generated/model';
 import dayjs from '../lib/dayjs';
 
@@ -62,6 +64,16 @@ export const clientDetails = (overrides: Partial<ClientDetailsResponse> = {}): C
   ],
   ...overrides,
 });
+
+export const visit = (overrides: Partial<VisitResponse> = {}): VisitResponse => ({
+  id: '88888888-8888-4888-8888-888888888888',
+  clientId: ids.client,
+  membershipId: ids.membership,
+  checkedInAt: dayjs().subtract(1, 'day').hour(9).minute(30).format(),
+  ...overrides,
+});
+
+export const visitPage = (items: VisitResponse[] = [], totalCount = items.length): VisitPageResponse => ({ items, totalCount });
 
 export const plan = (overrides: Partial<MembershipPlanResponse> = {}): MembershipPlanResponse => ({
   id: ids.plan,

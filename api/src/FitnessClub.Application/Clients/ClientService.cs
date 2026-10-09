@@ -30,9 +30,9 @@ internal sealed class ClientService(
     {
         var now = timeProvider.GetLocalNow();
         var profile = Profile.From(request);
-        await EnsurePhoneIsUniqueAsync(profile.Phone, excludeId: null, cancellationToken);
+        await EnsureEmailIsUniqueAsync(profile.Email, excludeId: null, cancellationToken);
 
-        var client = Client.Register(profile.Name, profile.DateOfBirth, profile.Phone, profile.Email, now);
+        var client = Client.Register(profile.Name, profile.DateOfBirth, profile.Email, profile.Phone, now);
         clients.Add(client);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return ClientDetailsResponse.FromEntity(client, ToDate(now));
@@ -43,9 +43,9 @@ internal sealed class ClientService(
         var now = timeProvider.GetLocalNow();
         var client = await FindAsync(id, cancellationToken);
         var profile = Profile.From(request);
-        await EnsurePhoneIsUniqueAsync(profile.Phone, client.Id, cancellationToken);
+        await EnsureEmailIsUniqueAsync(profile.Email, client.Id, cancellationToken);
 
-        client.UpdateProfile(profile.Name, profile.DateOfBirth, profile.Phone, profile.Email, now);
+        client.UpdateProfile(profile.Name, profile.DateOfBirth, profile.Email, profile.Phone, now);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return ClientDetailsResponse.FromEntity(client, ToDate(now));
     }
@@ -90,11 +90,12 @@ internal sealed class ClientService(
         return VisitResponse.FromEntity(visit);
     }
 
-    public async Task<IReadOnlyList<VisitResponse>> ListVisitsAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<VisitPageResponse> ListVisitsAsync(Guid id, VisitPageQuery query, CancellationToken cancellationToken)
     {
         var client = await FindAsync(id, cancellationToken);
-        var list = await visits.ListForClientAsync(client.Id, cancellationToken);
-        return list.Select(VisitResponse.FromEntity).ToList();
+        var total = await visits.CountForClientAsync(client.Id, cancellationToken);
+        var list = await visits.ListForClientAsync(client.Id, (query.Page - 1) * query.PageSize, query.PageSize, cancellationToken);
+        return new VisitPageResponse(list.Select(VisitResponse.FromEntity).ToList(), total);
     }
 
     private DateOnly Today() => ToDate(timeProvider.GetLocalNow());
@@ -105,19 +106,19 @@ internal sealed class ClientService(
         await clients.GetByIdAsync(id, cancellationToken)
         ?? throw new NotFoundException($"Client '{id}' was not found.");
 
-    private async Task EnsurePhoneIsUniqueAsync(PhoneNumber phone, Guid? excludeId, CancellationToken cancellationToken)
+    private async Task EnsureEmailIsUniqueAsync(EmailAddress email, Guid? excludeId, CancellationToken cancellationToken)
     {
-        if (await clients.PhoneExistsAsync(phone, excludeId, cancellationToken))
-            throw new ConflictException($"A client with phone '{phone}' already exists.");
+        if (await clients.EmailExistsAsync(email, excludeId, cancellationToken))
+            throw new ConflictException($"A client with email '{email}' already exists.");
     }
 
-    private sealed record Profile(PersonName Name, DateOnly DateOfBirth, PhoneNumber Phone, EmailAddress? Email)
+    private sealed record Profile(PersonName Name, DateOnly DateOfBirth, EmailAddress Email, PhoneNumber? Phone)
     {
         public static Profile From(ClientRequest request) =>
             new(
                 PersonName.Create(request.FirstName, request.LastName, request.MiddleName),
                 request.DateOfBirth.GetValueOrDefault(),
-                PhoneNumber.Create(request.Phone),
-                string.IsNullOrWhiteSpace(request.Email) ? null : EmailAddress.Create(request.Email));
+                EmailAddress.Create(request.Email),
+                string.IsNullOrWhiteSpace(request.Phone) ? null : PhoneNumber.Create(request.Phone));
     }
 }

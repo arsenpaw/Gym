@@ -8,23 +8,46 @@ namespace FitnessClub.UnitTests.Domain;
 public class ClientTests
 {
     private static readonly PersonName Name = PersonName.Create("Olena", "Shevchenko", null);
+    private static readonly EmailAddress Email = EmailAddress.Create("olena@example.com");
     private static readonly PhoneNumber Phone = PhoneNumber.Create("+380671234567");
 
     [Fact]
     public void Register_sets_profile_and_registration_time()
     {
-        var client = Client.Register(Name, new DateOnly(1995, 3, 14), Phone, null, TestData.Now);
+        var client = Client.Register(Name, new DateOnly(1995, 3, 14), Email, Phone, TestData.Now);
 
         Assert.Equal(Name, client.Name);
+        Assert.Equal(Email, client.Email);
         Assert.Equal(Phone, client.Phone);
         Assert.Equal(TestData.Now, client.RegisteredAt);
         Assert.Empty(client.Memberships);
     }
 
     [Fact]
+    public void Register_without_phone_keeps_phone_empty()
+    {
+        var client = Client.Register(Name, new DateOnly(1995, 3, 14), Email, null, TestData.Now);
+
+        Assert.Null(client.Phone);
+        Assert.Equal(Email, client.Email);
+    }
+
+    [Fact]
+    public void UpdateProfile_replaces_email_and_clears_phone()
+    {
+        var client = Client.Register(Name, new DateOnly(1995, 3, 14), Email, Phone, TestData.Now);
+        var newEmail = EmailAddress.Create("olena.new@example.com");
+
+        client.UpdateProfile(Name, client.DateOfBirth, newEmail, null, TestData.Now);
+
+        Assert.Equal(newEmail, client.Email);
+        Assert.Null(client.Phone);
+    }
+
+    [Fact]
     public void Register_with_future_date_of_birth_throws()
     {
-        Assert.Throws<DomainException>(() => Client.Register(Name, TestData.Today.AddDays(1), Phone, null, TestData.Now));
+        Assert.Throws<DomainException>(() => Client.Register(Name, TestData.Today.AddDays(1), Email, Phone, TestData.Now));
     }
 
     [Fact]
@@ -32,7 +55,7 @@ public class ClientTests
     {
         var dateOfBirth = TestData.Today.AddYears(-Client.MaxAge - 1);
 
-        Assert.Throws<DomainException>(() => Client.Register(Name, dateOfBirth, Phone, null, TestData.Now));
+        Assert.Throws<DomainException>(() => Client.Register(Name, dateOfBirth, Email, Phone, TestData.Now));
     }
 
     [Theory]
@@ -41,7 +64,7 @@ public class ClientTests
     [InlineData(6, 30)]
     public void AgeOn_counts_full_years(int birthDay, int expectedAge)
     {
-        var client = Client.Register(Name, new DateOnly(1995, 10, birthDay), Phone, null, TestData.Now);
+        var client = Client.Register(Name, new DateOnly(1995, 10, birthDay), Email, Phone, TestData.Now);
 
         Assert.Equal(expectedAge, client.AgeOn(TestData.Today));
     }
@@ -225,14 +248,6 @@ public class ClientTests
 
         Assert.False(ended.NeedsExpiryNotice(ended.Memberships.Single(), TestData.Today.AddDays(30)));
         Assert.False(usedUp.NeedsExpiryNotice(usedUp.Memberships.Single(), TestData.Today));
-    }
-
-    [Fact]
-    public void NeedsExpiryNotice_is_false_for_a_client_without_email()
-    {
-        var client = TestData.ClientWithMembership(email: null);
-
-        Assert.False(client.NeedsExpiryNotice(client.Memberships.Single(), TestData.Today));
     }
 
     [Fact]

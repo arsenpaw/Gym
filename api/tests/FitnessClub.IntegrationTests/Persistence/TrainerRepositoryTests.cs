@@ -2,6 +2,7 @@ using FitnessClub.Domain.Clients;
 using FitnessClub.Domain.SharedKernel;
 using FitnessClub.Domain.Trainers;
 using FitnessClub.IntegrationTests.Infrastructure;
+using FitnessClub.UnitTests.Domain;
 
 namespace FitnessClub.IntegrationTests.Persistence;
 
@@ -13,7 +14,7 @@ public class TrainerRepositoryTests(FitnessClubApiFactory factory) : Persistence
     [Fact]
     public async Task Trainer_round_trips_with_working_hours_and_clients()
     {
-        var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), PhoneNumber.Create(UniquePhone()), null, Now);
+        var client = Client.Register(PersonName.Create("Olena", "Shevchenko", null), new DateOnly(1995, 3, 14), EmailAddress.Create(TestData.UniqueEmail()), PhoneNumber.Create(UniquePhone()), Now);
         await SaveAsync<IClientRepository>(clients => clients.Add(client));
         var trainer = NewTrainer();
         trainer.SetWorkingHours(

@@ -90,8 +90,8 @@ Unchanged rules from the foundation spec. `Price` becomes `Money` and must be > 
 |---|---|
 | `Name` | `PersonName` |
 | `DateOfBirth` | not in the future, age ≤ 120. `AgeOn(date)` computes age (the requirement's "age") |
-| `Phone` | `PhoneNumber`, unique among clients |
-| `Email` | optional `EmailAddress`, used for expiry notices |
+| `Email` | required `EmailAddress`, unique among clients; the primary contact for every notice ([[2026-10-09-client-contacts-and-page-design]]) |
+| `Phone` | optional `PhoneNumber`, may repeat across clients |
 | `RegisteredAt` | set on `Register` |
 | `Memberships` | owned child entities |
 
@@ -105,7 +105,7 @@ Behaviour:
 - `Owns(membership)`: guards other aggregates that take a membership.
 - `NeedsExpiryNotice(membership, today)`: owned, the client has an email address, not cancelled, visits left, not yet ended, and the client hasn't already bought a later membership. `MembershipsNeedingExpiryNotice(today, endsBy)` lists them for the job.
 
-Repository: `ListAsync`, `PhoneExistsAsync(phone, excludeId)`, `ListWithMembershipsEndingBetweenAsync(from, to)` (for the expiry job).
+Repository: `ListAsync`, `EmailExistsAsync(email, excludeId)`, `ListWithMembershipsEndingBetweenAsync(from, to)` (for the expiry job).
 
 ### Visit (`Domain/Visits`)
 
@@ -119,7 +119,9 @@ Repository: `ListAsync`, `PhoneExistsAsync(phone, excludeId)`, `ListWithMembersh
 
 | Field | Rule |
 |---|---|
-| `Name`, `Phone` (unique), `Email` | as for clients |
+| `Name` | as for clients |
+| `Phone` | required `PhoneNumber`, unique among trainers |
+| `Email` | optional `EmailAddress` |
 | `Specialization` | required, ≤ 100 chars |
 | `IdentityUserId` | optional Auth0 `sub`, ≤ 128 chars, unique when set. Lets a trainer see their own schedule |
 | `IsActive` | inactive trainers keep history but take no clients or sessions |
@@ -181,7 +183,7 @@ Report queries are read models built in sub-project 5 behind an Application inte
 - Child entities and multi-field value objects are EF **owned types** (`OwnsMany`, `OwnsOne`), so loading a root always loads its whole aggregate. Single-value value objects use value converters.
 - Tables: `MembershipPlans`, `Clients`, `Memberships`, `Visits`, `Payments`, `Trainers`, `TrainerWorkingHours`, `TrainerClients`, `Rooms`, `TrainingSessions`, `Bookings`, `Notifications`.
 - References between aggregates are id columns with a `Restrict` foreign key. No navigation properties cross aggregates.
-- Unique indexes: plan name, room name, client phone, trainer phone, trainer identity id (filtered), payment membership id, notification (membership, type) (filtered). InMemory doesn't enforce them, so services still check.
+- Unique indexes: plan name, room name, client email, trainer phone, trainer identity id (filtered), payment membership id, notification (membership, type) (filtered). InMemory doesn't enforce them, so services still check.
 - Enums are stored as strings.
 - SQL Server uses split queries, so trainers with two owned collections don't multiply rows.
 - A save rejected by the concurrency check writes nothing on either provider. SQL Server rolls the whole save back in its transaction. InMemory has no transactions, so `FitnessClubDbContext` guards it instead: saves run one at a time behind a process-wide lock, and before writing, every modified or deleted aggregate root has its stored `Version` compared with the one it was loaded with. A missing row or a different version throws `DbUpdateConcurrencyException` before anything is written. The synchronous `SaveChanges` stamps versions and applies the same guard.

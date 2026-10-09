@@ -25,14 +25,6 @@ public class NotificationTests
     }
 
     [Fact]
-    public void MembershipExpiring_for_client_without_email_throws()
-    {
-        var client = TestData.ClientWithMembership(email: null);
-
-        Assert.Throws<DomainException>(() => Notification.MembershipExpiring(client, client.Memberships.Single(), TestData.Content(), TestData.Now));
-    }
-
-    [Fact]
     public void MembershipExpiring_for_cancelled_membership_throws()
     {
         var client = TestData.ClientWithMembership();
@@ -63,7 +55,7 @@ public class NotificationTests
     [Fact]
     public void ExpiryReminder_is_a_manual_email_without_membership_id()
     {
-        var client = TestData.ClientWithMembership();
+        var client = TestData.ClientWithMembership(email: "olena@example.com");
 
         var notification = Notification.ExpiryReminder(client, client.Memberships.Single(), TestData.Content(), TestData.Now);
 
@@ -94,15 +86,6 @@ public class NotificationTests
     }
 
     [Fact]
-    public void ExpiryReminder_for_client_without_email_throws()
-    {
-        var client = TestData.ClientWithMembership(email: null);
-
-        var exception = Assert.Throws<DomainException>(() => Notification.ExpiryReminder(client, client.Memberships.Single(), TestData.Content(), TestData.Now));
-        Assert.Equal("The client has no email address.", exception.Message);
-    }
-
-    [Fact]
     public void Promotion_is_a_manual_email_without_membership_id()
     {
         var client = TestData.Client("olena@example.com");
@@ -112,12 +95,6 @@ public class NotificationTests
         Assert.Equal(NotificationType.Promotion, notification.Type);
         Assert.Equal("olena@example.com", notification.Recipient);
         Assert.Null(notification.MembershipId);
-    }
-
-    [Fact]
-    public void Promotion_for_client_without_email_throws()
-    {
-        Assert.Throws<DomainException>(() => Notification.Promotion(TestData.Client(), TestData.Content(), TestData.Now));
     }
 
     [Fact]

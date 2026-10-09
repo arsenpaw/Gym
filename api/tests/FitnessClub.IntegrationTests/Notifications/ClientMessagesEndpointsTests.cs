@@ -44,18 +44,6 @@ public class ClientMessagesEndpointsTests(FitnessClubApiFactory factory) : IClas
     }
 
     [Fact]
-    public async Task Preview_for_a_client_without_email_returns_400_with_the_reason()
-    {
-        var client = await factory.ClientWithMembershipAsync(withEmail: false);
-
-        var response = await factory.CreateClientWithRoles(Roles.Admin).GetAsync($"{Url(client.Id)}/preview?template=Promotion", Ct);
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(Ct);
-        Assert.Equal("The client has no email address.", problem!.Detail);
-    }
-
-    [Fact]
     public async Task Preview_for_an_unknown_client_returns_404()
     {
         var response = await factory.CreateClientWithRoles(Roles.Admin).GetAsync($"{Url(Guid.NewGuid())}/preview?template=Promotion", Ct);

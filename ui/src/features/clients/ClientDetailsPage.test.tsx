@@ -14,12 +14,12 @@ import type { PurchaseMembershipRequest } from '../../api/generated/model';
 import { today } from '../../lib/dates';
 import dayjs from '../../lib/dayjs';
 import { signInAs } from '../../test/auth';
-import { clientDetails, ids, plan } from '../../test/fixtures';
+import { clientDetails, ids, plan, visit as visitFixture, visitPage } from '../../test/fixtures';
 import { renderRoute } from '../../test/render';
 import { server } from '../../test/server';
 import { ClientDetailsPage } from './ClientDetailsPage';
 
-const visit = { id: '99999999-9999-4999-8999-999999999999', clientId: ids.client, membershipId: ids.membership, checkedInAt: dayjs().subtract(1, 'day').format() };
+const visit = visitFixture();
 
 const renderDetails = () => renderRoute([{ path: '/clients/:clientId', element: <ClientDetailsPage /> }], `/clients/${ids.client}`);
 
@@ -32,15 +32,61 @@ describe('ClientDetailsPage', () => {
     );
   });
 
-  it('shows the profile, membership history and visits', async () => {
-    server.use(getClientsGetMockHandler(clientDetails()), getClientsListVisitsMockHandler([visit]));
+  it('shows the contacts, current membership and membership history', async () => {
+    server.use(getClientsGetMockHandler(clientDetails()), getClientsListVisitsMockHandler(visitPage([visit])));
 
     renderDetails();
 
     expect(await screen.findByRole('heading', { name: 'Shevchenko Olena' })).toBeInTheDocument();
-    expect(screen.getByText('+380671234567')).toBeInTheDocument();
+    expect(screen.getByLabelText('Email')).toHaveTextContent('olena@example.com');
+    expect(screen.getByLabelText('Phone')).toHaveTextContent('+380671234567');
+    expect(screen.getByText(/Monthly · valid .* · unlimited visits/)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Memberships (1)' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('3 / unlimited')).toBeInTheDocument();
-    expect(await screen.findByText(dayjs(visit.checkedInAt).format('D MMM YYYY, HH:mm'))).toBeInTheDocument();
+  });
+
+  it('leaves the phone out when the client has none', async () => {
+    server.use(getClientsGetMockHandler(clientDetails({ phone: null })), getClientsListVisitsMockHandler(visitPage()));
+
+    renderDetails();
+
+    expect(await screen.findByLabelText('Email')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Phone')).not.toBeInTheDocument();
+  });
+
+  it('shows visits in their own tab and pages through them on the server', async () => {
+    const requested: string[] = [];
+    const firstPage = Array.from({ length: 10 }, (_, day) =>
+      visitFixture({ id: `99999999-9999-4999-8999-0000000000${day}0`, checkedInAt: dayjs().subtract(day + 1, 'day').hour(9).minute(30).format() }),
+    );
+    const secondPageVisit = visitFixture({ id: '99999999-9999-4999-8999-999999999999', checkedInAt: dayjs().subtract(20, 'day').hour(18).minute(5).format() });
+    server.use(
+      getClientsGetMockHandler(clientDetails()),
+      getClientsListVisitsMockHandler(({ request }) => {
+        const page = new URL(request.url).searchParams.get('Page') ?? '1';
+        requested.push(page);
+        return page === '2' ? visitPage([secondPageVisit], 11) : visitPage(firstPage, 11);
+      }),
+    );
+    const { user } = renderDetails();
+
+    await user.click(await screen.findByRole('tab', { name: 'Visits (11)' }));
+    expect(await screen.findByText(dayjs(firstPage[0].checkedInAt).format('D MMM YYYY, HH:mm'))).toBeInTheDocument();
+    expect(screen.getByText('1–10 of 11')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '2' }));
+
+    expect(await screen.findByText(dayjs(secondPageVisit.checkedInAt).format('D MMM YYYY, HH:mm'))).toBeInTheDocument();
+    expect(requested).toContain('2');
+  });
+
+  it('shows the email preview in the Messages tab', async () => {
+    server.use(getClientsGetMockHandler(clientDetails()), getClientsListVisitsMockHandler(visitPage()));
+    const { user } = renderDetails();
+
+    await user.click(await screen.findByRole('tab', { name: 'Messages' }));
+
+    expect(await screen.findByTitle('Email preview')).toHaveAttribute('srcdoc', '<p>Hi</p>');
   });
 
   it('checks the client in and reloads the visits', async () => {
@@ -49,7 +95,7 @@ describe('ClientDetailsPage', () => {
       getClientsGetMockHandler(clientDetails()),
       getClientsListVisitsMockHandler(() => {
         visitLoads += 1;
-        return visitLoads === 1 ? [] : [visit];
+        return visitLoads === 1 ? visitPage() : visitPage([visit]);
       }),
       getClientsCheckInMockHandler(visit),
     );
@@ -64,7 +110,7 @@ describe('ClientDetailsPage', () => {
   it('explains why a check-in was refused', async () => {
     server.use(
       getClientsGetMockHandler(clientDetails({ activeMembership: null })),
-      getClientsListVisitsMockHandler([]),
+      getClientsListVisitsMockHandler(visitPage()),
       http.post('*/api/clients/:id/visits', () =>
         HttpResponse.json({ title: 'Invalid request', detail: 'The client has no active membership today.' }, { status: 400 }),
       ),
@@ -81,7 +127,7 @@ describe('ClientDetailsPage', () => {
     let sent: PurchaseMembershipRequest | undefined;
     server.use(
       getClientsGetMockHandler(clientDetails()),
-      getClientsListVisitsMockHandler([]),
+      getClientsListVisitsMockHandler(visitPage()),
       getMembershipPlansListMockHandler([plan(), plan({ id: '22222222-2222-4222-8222-333333333333', name: 'Yearly', price: 9000, validityDays: 365 })]),
       getClientsPurchaseMembershipMockHandler(async ({ request }) => {
         sent = (await request.json()) as PurchaseMembershipRequest;
@@ -111,7 +157,7 @@ describe('ClientDetailsPage', () => {
     let cancelled = false;
     server.use(
       getClientsGetMockHandler(clientDetails()),
-      getClientsListVisitsMockHandler([]),
+      getClientsListVisitsMockHandler(visitPage()),
       getClientsCancelMembershipMockHandler(() => {
         cancelled = true;
       }),
@@ -128,7 +174,7 @@ describe('ClientDetailsPage', () => {
     let updates = 0;
     server.use(
       getClientsGetMockHandler(clientDetails()),
-      getClientsListVisitsMockHandler([]),
+      getClientsListVisitsMockHandler(visitPage()),
       getClientsUpdateMockHandler(() => {
         updates += 1;
         return clientDetails();
@@ -151,7 +197,7 @@ describe('ClientDetailsPage', () => {
     let sales = 0;
     server.use(
       getClientsGetMockHandler(clientDetails()),
-      getClientsListVisitsMockHandler([]),
+      getClientsListVisitsMockHandler(visitPage()),
       getMembershipPlansListMockHandler([plan()]),
       getClientsPurchaseMembershipMockHandler(() => {
         sales += 1;

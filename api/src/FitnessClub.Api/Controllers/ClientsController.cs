@@ -56,6 +56,6 @@ public sealed class ClientsController(IClientService service) : ControllerBase
     }
 
     [HttpGet("{id:guid}/visits")]
-    public Task<IReadOnlyList<VisitResponse>> ListVisits(Guid id, CancellationToken cancellationToken) =>
-        service.ListVisitsAsync(id, cancellationToken);
+    public Task<VisitPageResponse> ListVisits(Guid id, [FromQuery] VisitPageQuery query, CancellationToken cancellationToken) =>
+        service.ListVisitsAsync(id, query, cancellationToken);
 }
