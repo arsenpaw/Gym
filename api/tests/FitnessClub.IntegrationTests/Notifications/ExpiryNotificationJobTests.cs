@@ -15,14 +15,13 @@ public class ExpiryNotificationJobTests(FitnessClubApiFactory factory) : IClassF
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public void Startup_registers_the_daily_expiry_job_in_club_local_time()
+    public void Startup_registers_the_expiry_job_for_manual_trigger_only()
     {
         using var connection = factory.Services.GetRequiredService<JobStorage>().GetConnection();
 
         var job = Assert.Single(connection.GetRecurringJobs(), job => job.Id == JobId);
 
-        Assert.Equal(Cron.Daily(8), job.Cron);
-        Assert.Equal(TimeZoneInfo.Local.Id, job.TimeZoneId);
+        Assert.Equal(Cron.Never(), job.Cron);
         Assert.Equal("ExpiryNotificationJob", job.Job.Type.Name);
         Assert.Equal("RunAsync", job.Job.Method.Name);
     }

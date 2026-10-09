@@ -6,7 +6,7 @@ date: 2026-10-07
 
 # Membership Expiry Notifications: Design Spec
 
-Sub-project 4 of the backend. Requirements source: [[Fitness Club System]] ("clients are notified automatically before their membership expires"). The domain model (`Notification`, `Client.NeedsExpiryNotice`, `MembershipsNeedingExpiryNotice`) comes from [[2026-10-05-domain-model-and-architecture-design]]. This spec adds the use cases, the daily Hangfire job and the admin endpoints. Email delivery moved from SMTP to Twilio SendGrid with HTML templates in [[2026-10-08-client-messages-design]]; the sections below describe the current SendGrid setup.
+Sub-project 4 of the backend. Requirements source: [[Fitness Club System]] ("clients are notified automatically before their membership expires"). The domain model (`Notification`, `Client.NeedsExpiryNotice`, `MembershipsNeedingExpiryNotice`) comes from [[2026-10-05-domain-model-and-architecture-design]]. This spec adds the use cases, the Hangfire job and the admin endpoints. Email delivery moved from SMTP to Twilio SendGrid with HTML templates in [[2026-10-08-client-messages-design]]; the sections below describe the current SendGrid setup.
 
 ## Flow
 
@@ -38,7 +38,7 @@ One run = **create due notices**, then **send pending notices**.
 | Infrastructure | `SendGridNotificationSender` | Posts the notice to SendGrid's v3 Mail Send API, used when `SendGrid:ApiKey` is set. Text and HTML parts, 30 s timeout. A non-2xx response or any channel other than `Email` throws, so the notice is marked `Failed` with the reason |
 | Infrastructure | `LoggingNotificationSender` | Writes the message to `ILogger`, used when `SendGrid:ApiKey` is empty (local dev, tests) |
 | Infrastructure | `ExpiryNotificationJob` | Hangfire job that calls `RunAsync`. `[DisableConcurrentExecution]` keeps two runs from overlapping |
-| Infrastructure | `RecurringJobs.Register` | `membership-expiry-notifications`, `Cron.Daily(8)` (08:00) in `TimeZoneInfo.Local` |
+| Infrastructure | `RecurringJobs.Register` | `membership-expiry-notifications`, `Cron.Never()`: registered but never scheduled, so it runs only when triggered by hand (`POST /api/notifications/run` or **Trigger now** on `/hangfire`) |
 | Api | `NotificationsController` | Admin only |
 
 Application may not reference `Microsoft.Extensions.Options`, so `AddInfrastructure()` binds and validates the options (`ValidateDataAnnotations`, `ValidateOnStart`) and registers the bound `ExpiryNotificationOptions` instance as a singleton for the service. An invalid value stops startup with `OptionsValidationException`.
@@ -66,12 +66,12 @@ All under `api/notifications`, role **Admin** (401 without a user, 403 for other
 - **Choosing the sender.** `AddInfrastructure()` registers `SendGridNotificationSender` (typed `HttpClient`) when `SendGrid:ApiKey` is set and `LoggingNotificationSender` otherwise. `FromAddress` is required once `ApiKey` is set, checked at startup, and must be a verified sender in SendGrid.
 - **Deploy.** `deploy/docker-compose.yml` passes `SENDGRID_*` variables, all optional (an empty `SENDGRID_API_KEY` means log only). `deploy/docker-compose.server.yml` requires them.
 
-The job time (08:00 club-local) is fixed in code.
+The job has no schedule (`Cron.Never()`, fixed in code). To run it daily again, change the cron in `RecurringJobs.Register`.
 
 ## Tests
 
 - **Unit** (`ExpiryNotificationServiceTests`, fakes only): window edges and configured window, clients without email skipped, no duplicates across runs, renewed / cancelled / short or not-started passes skipped, send success and failure with the run continuing, retry, list filter, run.
-- **Integration** (`Notifications/`): HTTP list / filter / retry / run, 400 / 401 / 403 / 404 cases; startup registers the recurring job with the right cron and time zone; triggering the job through Hangfire creates and sends a notice; an invalid `ExpiryNoticeDays` fails startup; the sender is `LoggingNotificationSender` without a SendGrid API key and `SendGridNotificationSender` with one, and a key without `FromAddress` fails startup.
+- **Integration** (`Notifications/`): HTTP list / filter / retry / run, 400 / 401 / 403 / 404 cases; startup registers the recurring job with `Cron.Never()`; triggering the job through Hangfire creates and sends a notice; an invalid `ExpiryNoticeDays` fails startup; the sender is `LoggingNotificationSender` without a SendGrid API key and `SendGridNotificationSender` with one, and a key without `FromAddress` fails startup.
 - **SendGrid** (`SendGridNotificationSenderTests`): a stub `HttpMessageHandler` checks the URL, bearer key, from, to, subject and both content parts; text only when there is no HTML; a non-2xx response throws with SendGrid's reason.
 
 ## Known gaps

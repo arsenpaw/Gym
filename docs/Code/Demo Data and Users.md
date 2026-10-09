@@ -14,7 +14,7 @@ Dates are relative to the moment the migration runs, so the data always looks cu
 | Clients | 16 clients covering every membership state: active, expiring in the next week, expired, cancelled, visits used up, starting in the future, renewed in advance, and none |
 | Visits and payments | A check-in history and one payment per membership |
 | Schedule | Group classes and individual sessions from 4 weeks back to 2 weeks ahead, with bookings. One upcoming HIIT class is cancelled |
-| Notifications | One sent and one failed expiry notice. The daily job adds notices for the memberships that expire soon |
+| Notifications | One sent and one failed expiry notice. Running the expiry job (`POST /api/notifications/run`) adds notices for the memberships that expire soon |
 
 Every seeded id starts with `5eed`. Rolling back the migration deletes only those rows and the rows that belong to them.
 

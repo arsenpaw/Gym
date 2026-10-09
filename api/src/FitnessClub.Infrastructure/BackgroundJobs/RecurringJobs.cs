@@ -9,7 +9,6 @@ internal static class RecurringJobs
         recurringJobs.AddOrUpdate<ExpiryNotificationJob>(
             ExpiryNotificationJob.Id,
             job => job.RunAsync(CancellationToken.None),
-            Cron.Daily(8),
-            new RecurringJobOptions { TimeZone = TimeZoneInfo.Local });
+            Cron.Never());
     }
 }
