@@ -36,6 +36,19 @@ To run without Docker, see `api/CLAUDE.md` and `ui/CLAUDE.md`. All settings are 
 
 ## Patterns used
 
+Diagrams (use cases, UML classes, architecture, sequences) and the full pattern catalogue with GRASP and SOLID are in [docs/Code/Design](docs/Code/Design/).
+
+**GoF**
+- **Strategy:** `INotificationSender` is `SendGridNotificationSender` (Twilio SendGrid) when an API key is configured, otherwise `LoggingNotificationSender`; `TimeProvider` as the clock.
+- **Adapter:** `SendGridNotificationSender` wraps the SendGrid REST API; repositories wrap EF Core; `AccessTokenBridge` wraps Auth0 for the HTTP client.
+- **Facade:** one `I{Name}Service` per area in front of repositories, aggregates and the unit of work.
+- **Factory Method** (static factories): `Client.Register`, `Trainer.Hire`, `Notification.MembershipExpiring`, `Money.Of`…, with private constructors.
+- **Command:** the Hangfire `ExpiryNotificationJob`, stored and run later.
+- **Chain of Responsibility:** `ExceptionToProblemDetailsHandler` in the ASP.NET Core pipeline; axios interceptors in the UI.
+- **Observer:** TanStack Query subscriptions and query invalidation.
+- **Template Method** (template fill): `EmailTemplates` fills fixed HTML email templates.
+- **Decorator** (tests): `CountingUnitOfWork`.
+
 **Backend**
 - **Clean Architecture:** Domain ← Application ← Infrastructure ← Api. Architecture tests (NetArchTest + Roslyn) enforce it.
 - **DDD:** sealed aggregate roots with private setters and factory methods; value objects in `Domain/SharedKernel` (`Money`, `PhoneNumber`, `TimeSlot`…); a domain service (`SessionScheduler`); `DomainException` for broken rules.
@@ -45,8 +58,7 @@ To run without Docker, see `api/CLAUDE.md` and `ui/CLAUDE.md`. All settings are 
 - **Optimistic concurrency:** a shadow `Version` token on every aggregate; a stale save → 409.
 - **Exception → Problem Details:** one handler maps exceptions to RFC 7807 responses (400/404/409/500).
 - **Separate read side for reports:** `IReportQueries` queries the database directly instead of loading aggregates.
-- **Strategy / adapter:** `INotificationSender`: `SendGridNotificationSender` (Twilio SendGrid) when an API key is configured, otherwise `LoggingNotificationSender`.
-- **Scheduled job:** a Hangfire recurring job sends expiry notices daily.
+- **Background job:** the Hangfire job `membership-expiry-notifications` sends expiry notices. It is registered with `Cron.Never()`, so for now notices go out only when an admin runs them (`POST /api/notifications/run`, or the job from the Hangfire dashboard).
 - **Injected clock:** `TimeProvider` instead of `DateTime.UtcNow`, so time is testable.
 - **Role-based auth:** Auth0 JWT, an "authenticated" fallback policy, `[Authorize(Roles = …)]`.
 

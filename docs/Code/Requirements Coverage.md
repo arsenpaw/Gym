@@ -5,7 +5,7 @@ date: 2026-10-07
 
 # Requirements Coverage
 
-Maps each requirement in [[Fitness Club System]] to its API endpoints. The domain model is in [[2026-10-05-domain-model-and-architecture-design]]. Each area has its own spec, linked below.
+Maps each requirement in [[Fitness Club System]] to its API endpoints. The domain model is in [[2026-10-05-domain-model-and-architecture-design]]. Each area has its own spec, linked below. Diagrams: [[Use Cases]], [[Class Diagram]], [[Architecture]], [[Design Patterns]].
 
 ## Coverage
 
